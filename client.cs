@@ -14,14 +14,8 @@ function ClientCMDES_MarkVehicle(%vehicleGhostID)
     if(!isEventPending($ES_MonitorSchedule))
         ES_Client_MonitorHandles();
 }
-function ES_Client_MonitorHandles(%lastHandle, %lastHandleTime)
+function ES_Client_MonitorHandles()
 {
-    if(%lastHandle == 0 || getSimTime() - %lastHandleTime > 1000)
-    {
-        %lastHandleTime = getSimTime();
-        %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
-        alxStop(%lastHandle); //stop it
-    }
     %set = nameTOID("ES_Client_MonitorVehicles");
     %c = %set.getCount();
     for(%k = 0; %k < %c; %k++)
@@ -38,13 +32,15 @@ function ES_Client_MonitorHandles(%lastHandle, %lastHandleTime)
                 {
                     //handshake is probably overkill but here we are
                     commandToServer('ES_checkVehicle', %i, serverConnection.getGhostID(%obj));
+
+                    ES_Client_MonitorVehicles.remove(serverConnection.getGhostID(%obj));
                     $ES_checkHandle[%i] = true;
                     $ES_AudioHandle[%i] = true;
                 }
             }
         }
     }
-    $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles, %lastHandle, %lastHandleTime);
+    $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles)
 }
 function clientCmdES_ConfirmHandle(%audioHandle, %ghostIndex, %startPitch, %scalar)
 {

@@ -65,6 +65,14 @@ function serverCmdES_checkVehicle(%client, %audioHandle, %ghostIndex)
 
 package ES_Server_Package
 {
+    //dont know if ghosting is possible (leaving it in anyway)
+    function GameConnection::onClientJoinGame(%this)
+    {
+        for(%i = 0; %i < ES_SimSet.getCount(); %i++)
+            commandToClient(%this, 'ES_markVehicle', %this.getGhostID(ES_SimSet.getObject(%i))); //tell the client about vehicles to mark
+            
+        return parent::onClientJoinGame(%this);
+    }
     function WheeledVehicleData::onAdd (%this, %vehicle)
     {
         %ret = parent::onAdd (%this, %vehicle); //put wheels on dat bad boi
