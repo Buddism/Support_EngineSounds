@@ -12,7 +12,6 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 	maxDistance = 50;
 	type = $SimAudioType;
 };
-exec("./example.cs");
 
 //holds engine sound vehicles to sync to clients
 if(!isObject(ES_SimSet))
@@ -51,7 +50,7 @@ function serverCmdES_checkVehicle(%client, %audioHandle, %ghostIndex)
         %client.ES_AudioSet = new simSet();
         %client.add(%client.ES_AudioSet);
     }
-    
+
     if(isObject(%ctrl = %client.getControlObject()) && !%client.ES_AudioSet.isMember(%actualVehicle))
     {
         initContainerRadiusSearch(%ctrl.getTransform(), 60, $TypeMasks::VehicleObjectType);
