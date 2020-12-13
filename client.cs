@@ -1,54 +1,75 @@
-function clientCmdES_createAudio(%vehicleGhostID, %engineSound, %startPitch, %velocityScalar) //engineSound is unused
+function ClientCMDES_MarkVehicle(%vehicleGhostID)
 {
-    $vehicle = %vehicle = serverConnection.resolveGhostID(%vehicleGhostID);
+    %vehicle = serverConnection.resolveGhostID(%vehicleGhostID);
+    if(!isObject(ES_Client_MonitorVehicles))
+        new simSet(ES_Client_MonitorVehicles);
 
-    if(!isObject(%vehicle) || !(%vehicle.getType() & $TypeMasks::VehicleObjectType))
-        return;
+    %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
+    alxStop(%lastHandle); //stop it
 
-    %newHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
-    alxstop(%newHandle); //stop it
+    //mark its handler because handlers arent active until the player goes near them, but they keep using an older handle id?
+    %vehicle.ES_HandlePosition = %lastHandle;
+    ES_Client_MonitorVehicles.add(%vehicle);
 
-    %description = %engineSound.getDescription();
-    %rDist = %description.ReferenceDistance;
-	%mDist = %description.maxDistance;
-    %AL_GAIN = 0.85; // turns into this somehow (.volume)
-
-    for(%handleIndex = %newHandle; %handleIndex >= %newHandle - 32; %handleIndex--) //search a last 10 audio handles
+    if(!isEventPending($ES_MonitorSchedule))
+        ES_Client_MonitorHandles();
+}
+function ES_Client_MonitorHandles(%lastHandle, %lastHandleTime)
+{
+    if(%lastHandle == 0 || getSimTime() - %lastHandleTime > 1000)
     {
-        if(alxIsPlaying(%handleIndex) && alxGetSourceI(%handleIndex, "AL_LOOPING")) //is the audio handle looping?
+        %lastHandleTime = getSimTime();
+        %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
+        alxStop(%lastHandle); //stop it
+    }
+    %set = nameTOID("ES_Client_MonitorVehicles");
+    %c = %set.getCount();
+    for(%k = 0; %k < %c; %k++)
+    {
+        %obj = %set.getObject(%k);
+        %handleIndex = %obj.ES_HandlePosition;
+        for(%i = %handleIndex - 4; %i <= %handleIndex + 4; %i++)
         {
-            if($ES_AudioHandle[%handleIndex])
-                continue;
-
-            if(alxGetSourceF(%handleIndex, "AL_MAX_DISTANCE") == %mDist && alxGetSourceF(%handleIndex, "AL_GAIN") == %AL_GAIN && alxGetSourceF(%handleIndex, "AL_REFERENCE_DISTANCE") == %rDist) // compare the alx enum vars to the description for more accuracy
+            if(alxIsPlaying(%i))
             {
-                %gotHandle = true;
-                alxSourceF(%handleIndex, "AL_GAIN", 1); // reset audio volume to 1
-                break;
+                %lastHandle = %i;
+                %lastHandleTime = getSimTime();
+                if(alxGetSourceI(%i, "AL_LOOPING") && alxGetSourceF(%i, "AL_GAIN") $= 0.85 && !$ES_AudioHandle[%i])
+                {
+                    //handshake is probably overkill but here we are
+                    commandToServer('ES_checkVehicle', %i, serverConnection.getGhostID(%obj));
+                    $ES_checkHandle[%i] = true;
+                    $ES_AudioHandle[%i] = true;
+                }
             }
         }
     }
-
-    if(!%gotHandle)
+    $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles, %lastHandle, %lastHandleTime);
+}
+function clientCmdES_ConfirmHandle(%audioHandle, %ghostIndex, %startPitch, %scalar)
+{
+    if(!$ES_checkHandle[%audioHandle])
         return;
 
-    $ES_AudioHandle[%handleIndex] = %vehicle;
-    %vehicle.ES_AudioHandle = %handleIndex;
-    %startPitch = mClampF(%startPitch, -100.0, 100.0);
+    $ES_checkHandle[%audioHandle] = false;
+    %vehicle = serverConnection.resolveGhostID(%ghostIndex);
+    if(isObject(%vehicle))
+    {
+        %vehicle.ES_AudioHandle = %audioHandle;
 
-    %vehicle.ES_StartPitch = %startPitch;
-    alxSourcef(%handle, "AL_PITCH", %startPitch);
+        %vehicle.ES_StartPitch = %startPitch;
+        %vehicle.ES_VelocityScalar = %scalar;
 
-    %vehicle.ES_VelocityScalar = %velocityScalar;
-    if(!isObject(ES_Vehicle_SimSet))
-        new simSet(ES_Vehicle_SimSet);
+        //this simset is for pitch updates on moving vehicles
+        if(!isObject(ES_Vehicle_SimSet))
+            new simSet(ES_Vehicle_SimSet);
 
-    ES_Vehicle_SimSet.add(%vehicle);
+        ES_Vehicle_SimSet.add(%vehicle);
 
-    if(!isEventPending($EngineSound_Schedule))
-        ES_Client_Loop();
+        if(!isEventPending($EngineSound_Schedule))
+            ES_Client_Loop();
+    }
 }
-
 function ES_Client_Loop()
 {
     cancel($EngineSound_Schedule);
@@ -60,7 +81,7 @@ function ES_Client_Loop()
     {
         %vehicle = %set.getObject(%i);
         %handle = %vehicle.ES_AudioHandle;
-        if( ! (%vehicle.getType() & $TypeMasks::VehicleObjectType) ) //there might be a better way to do this
+        if( ! (%vehicle.getType() & $TypeMasks::VehicleObjectType) ) //wonderful type check
         {
             %set.remove(%vehicle);
             continue;
@@ -71,7 +92,6 @@ function ES_Client_Loop()
             %pitch = %vehicle.ES_StartPitch + vectorLen(%vehicle.getVelocity()) / %vehicle.ES_VelocityScalar;
             %pitch = mClampF(%pitch, -100.0, 100.0);
             alxSourcef(%handle, "AL_PITCH", %pitch);
-            clientcmdBottomprint(%pitch, 1);
         } else {
             %set.remove(%vehicle);
         }
