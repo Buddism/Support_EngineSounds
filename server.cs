@@ -70,7 +70,7 @@ package ES_Server_Package
     {
         for(%i = 0; %i < ES_SimSet.getCount(); %i++)
             commandToClient(%this, 'ES_markVehicle', %this.getGhostID(ES_SimSet.getObject(%i))); //tell the client about vehicles to mark
-            
+
         return parent::onClientJoinGame(%this);
     }
     function WheeledVehicleData::onAdd (%this, %vehicle)
@@ -95,6 +95,8 @@ package ES_Server_Package
         %vehicle.schedule(100, ES_ApplyData);
         ES_SimSet.add(%vehicle);
 
+        //clients should load this in ghosting objects loading stage
+        %vehicle.setScopeAlways();
         return %ret; //probably not important
     }
 };
