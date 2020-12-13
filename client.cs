@@ -1,4 +1,4 @@
-function serverCMDES_handshake()
+function clientCmdES_Handshake()
 {
     commandToServer('ES_Handshake');
 }
@@ -32,6 +32,7 @@ function clientCmdES_ConfirmHandle(%audioHandle, %ghostIndex, %startPitch, %scal
 
     $ES_checkHandle[%audioHandle] = false;
     %vehicle = serverConnection.resolveGhostID(%ghostIndex);
+
     if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
         return;
 
@@ -69,17 +70,19 @@ function ES_Client_MonitorHandles()
                     //handshake is probably overkill but here we are
                     commandToServer('ES_checkVehicle', %i, serverConnection.getGhostID(%obj));
 
-                    ES_MonitorSet.remove(serverConnection.getGhostID(%obj));
+                    %set.remove(%obj);
+
                     $ES_checkHandle[%i] = true;
                     $ES_AudioHandle[%i] = true;
                 }
             }
         }
     }
-    if(ES_MonitorSet.getCount() == 0) //we are not looking for anything anymore
+
+    if(%set.getCount() == 0) //we are not looking for anything anymore
         return;
 
-    $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles)
+    $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles);
 }
 
 function ES_Client_Loop()

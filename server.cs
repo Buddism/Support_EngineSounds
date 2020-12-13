@@ -47,11 +47,14 @@ function serverCmdES_checkVehicle(%client, %audioHandle, %ghostIndex)
         return;
 
     if(!isObject(%client.ES_AudioSet))
+    {
         %client.ES_AudioSet = new simSet();
-
+        %client.add(%client.ES_AudioSet);
+    }
+    
     if(isObject(%ctrl = %client.getControlObject()) && !%client.ES_AudioSet.isMember(%actualVehicle))
     {
-        initContainerRadiusSearch(%ctrl.getTransform(), 30, $TypeMasks::VehicleObjectType);
+        initContainerRadiusSearch(%ctrl.getTransform(), 60, $TypeMasks::VehicleObjectType);
         while( isObject(%foundVehicle = containerSearchNext()) )
         {
             if(%client.ES_AudioSet.isMember(%foundVehicle)) //vehicle has already been handled
@@ -72,6 +75,12 @@ function serverCMDES_handshake(%client)
     %client.hasES = true;
 }
 
+function GameConnection::ES_DelaySync(%this)
+{
+    for(%i = 0; %i < ES_SimSet.getCount(); %i++)
+        commandToClient(%this, 'ES_markVehicle', %this.getGhostID(ES_SimSet.getObject(%i))); //tell the client about vehicles to mark
+}
+
 package ES_Server_Package
 {
     function GameConnection::AutoAdminCheck(%client)
@@ -81,13 +90,12 @@ package ES_Server_Package
         return parent::AutoAdminCheck(%client);
     }
     //dont know if ghosting is possible (leaving it in anyway)
-    function GameConnection::onClientJoinGame(%this)
+    function GameConnection::onClientEnterGame(%this)
     {
-        if(%client.hasES)
-            for(%i = 0; %i < ES_SimSet.getCount(); %i++)
-                commandToClient(%this, 'ES_markVehicle', %this.getGhostID(ES_SimSet.getObject(%i))); //tell the client about vehicles to mark
+        if(%this.hasES)
+            %this.schedule(100, ES_DelaySync);
 
-        return parent::onClientJoinGame(%this);
+        return parent::onClientEnterGame(%this);
     }
     function WheeledVehicleData::onAdd (%this, %vehicle)
     {
@@ -112,7 +120,7 @@ package ES_Server_Package
         ES_SimSet.add(%vehicle);
 
         //clients should load this in ghosting objects loading stage
-        %vehicle.setScopeAlways();
+        //%vehicle.setScopeAlways(); this breaks the ghost ids somehow?
         return %ret; //probably not important
     }
 };
