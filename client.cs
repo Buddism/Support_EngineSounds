@@ -1,3 +1,7 @@
+function serverCMDES_handshake()
+{
+    commandToServer('ES_Handshake');
+}
 function ClientCMDES_MarkVehicle(%vehicleGhostID)
 {
     %vehicle = serverConnection.resolveGhostID(%vehicleGhostID);

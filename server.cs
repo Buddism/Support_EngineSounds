@@ -32,12 +32,16 @@ function Vehicle::ES_ApplyData(%vehicle)
     for(%i = 0; %i < clientGroup.getCount(); %i++)
     {
         %client = clientGroup.getObject(%i);
-        commandToClient(%client, 'ES_markVehicle', %client.getGhostID(%vehicle));
+        if(%client.hasES)
+            commandToClient(%client, 'ES_markVehicle', %client.getGhostID(%vehicle));
     }
 }
 
 function serverCmdES_checkVehicle(%client, %audioHandle, %ghostIndex)
 {
+    if(!%client.hasES)
+        return;
+
     %actualVehicle = %client.resolveObjectFromGhostIndex(%ghostIndex); // nice func name here
     if(!isObject(%actualVehicle) || ! (%actualVehicle.getType() & $TypeMasks::VehicleObjectType))
         return;
@@ -63,13 +67,25 @@ function serverCmdES_checkVehicle(%client, %audioHandle, %ghostIndex)
     }
 }
 
+function serverCMDES_handshake(%client)
+{
+    %client.hasES = true;
+}
+
 package ES_Server_Package
 {
+    function GameConnection::AutoAdminCheck(%client)
+    {
+        //simple handshake system
+        commandToClient(%client, 'ES_Handshake');
+        return parent::AutoAdminCheck(%client);
+    }
     //dont know if ghosting is possible (leaving it in anyway)
     function GameConnection::onClientJoinGame(%this)
     {
-        for(%i = 0; %i < ES_SimSet.getCount(); %i++)
-            commandToClient(%this, 'ES_markVehicle', %this.getGhostID(ES_SimSet.getObject(%i))); //tell the client about vehicles to mark
+        if(%client.hasES)
+            for(%i = 0; %i < ES_SimSet.getCount(); %i++)
+                commandToClient(%this, 'ES_markVehicle', %this.getGhostID(ES_SimSet.getObject(%i))); //tell the client about vehicles to mark
 
         return parent::onClientJoinGame(%this);
     }
@@ -83,10 +99,10 @@ package ES_Server_Package
         for(%i = 0; %i < clientGroup.getCount(); %i++)
         {
             %client = clientGroup.getObject(%i);
-            if(!isObject(%client.ES_AudioSet))
+            if(%client.hasES && !isObject(%client.ES_AudioSet))
             {
                 %client.ES_AudioSet = new simSet();
-                %client.add(%client.ES_AudioSet); // yes
+                %client.add(%client.ES_AudioSet); // auto delete the clients simset on disconnect
             }
 
             %vehicle.scopeToClient(%client);
