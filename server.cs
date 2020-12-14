@@ -13,10 +13,6 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 	type = $SimAudioType;
 };
 
-//holds engine sound vehicles to sync to clients
-if(!isObject(ES_SimSet))
-    new SimSet(ES_SimSet);
-
 function serverCmdES_newAudioHandle(%client, %audioHandle)
 {
     if(!%client.hasES)
@@ -53,7 +49,7 @@ package ES_Server_Package
         commandToClient(%client, 'ES_Handshake');
         return parent::AutoAdminCheck(%client);
     }
-    
+
     function WheeledVehicleData::onAdd (%this, %vehicle)
     {
         %ret = parent::onAdd (%this, %vehicle); //put wheels on dat bad boi
@@ -73,7 +69,6 @@ package ES_Server_Package
             %vehicle.scopeToClient(%client);
         }
 
-        ES_SimSet.add(%vehicle);
         %vehicle.playAudio(0, %this.ES_SoundDB);
         return %ret; //probably not important
     }
