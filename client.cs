@@ -21,8 +21,26 @@ function ClientCMDES_MarkVehicle(%vehicleGhostID)
     %vehicle.ES_HandlePosition = %lastHandle;
     ES_MonitorSet.add(%vehicle);
 
+
+    %sorter = new GuiTextListCtrl();
+
+    for(%i = 0; %i < ES_MonitorSet.getCount(); %i++)
+        %sorter.addRow(%i, ES_MonitorSet.getObject(%i));
+
+	%sorter.sortNumerical(0, false); //oldest car (lowest ID) is last in the list
+
+    for(%i = 0; %i < ES_MonitorSet.getCount(); %i++)
+        %dat = %dat SPC %sorter.getRowText(%i);
+
+    ES_MonitorSet.dataList = trim(%dat);
+    //newchathud_addline(getWordCount(trim(%dat)));
+    //newchathud_addline(strreplace(trim(%dat), " ", ", "));
+    %sorter.delete();
+
     if(!isEventPending($ES_MonitorSchedule))
         ES_Client_MonitorHandles();
+
+    //newchathud_addline($COUNT++);
 }
 
 function clientCmdES_ConfirmHandle(%audioHandle, %ghostIndex, %startPitch, %scalar)
@@ -54,12 +72,19 @@ function clientCmdES_ConfirmHandle(%audioHandle, %ghostIndex, %startPitch, %scal
 function ES_Client_MonitorHandles()
 {
     %set = nameTOID("ES_MonitorSet");
-    %c = %set.getCount();
-    for(%k = 0; %k < %c; %k++)
+    %dat = %set.dataList;
+    %c = getWordCount(%dat);
+    for(%k = %c - 1; %k >= 0; %k--)
     {
-        %obj = %set.getObject(%k);
+        %obj = getWord(%dat, %k);
+        //echo(%k SPC %obj);
+        if(!isObject(%obj))
+        {
+            %dat = removeWord(%dat, %k);
+            continue;
+        }
         %handleIndex = %obj.ES_HandlePosition;
-        for(%i = %handleIndex - 4; %i <= %handleIndex + 4; %i++)
+        for(%i = %handleIndex - 16; %i <= %handleIndex + 16; %i++)
         {
             if(alxIsPlaying(%i))
             {
@@ -69,16 +94,21 @@ function ES_Client_MonitorHandles()
                 {
                     //handshake is probably overkill but here we are
                     commandToServer('ES_checkVehicle', %i, serverConnection.getGhostID(%obj));
+                    //newchathud_addline(newHandleHook);
 
                     %set.remove(%obj);
+                    %dat = removeWord(%dat, %k);
 
                     $ES_checkHandle[%i] = true;
                     $ES_AudioHandle[%i] = true;
+
+                    //break out of this loop
+                    break;
                 }
             }
         }
     }
-
+    %set.dataList = %dat;
     if(%set.getCount() == 0) //we are not looking for anything anymore
         return;
 

@@ -45,28 +45,7 @@ function serverCmdES_checkVehicle(%client, %audioHandle, %ghostIndex)
     if(!isObject(%actualVehicle) || ! (%actualVehicle.getType() & $TypeMasks::VehicleObjectType))
         return;
 
-    if(!isObject(%client.ES_AudioSet))
-    {
-        %client.ES_AudioSet = new simSet();
-        %client.add(%client.ES_AudioSet);
-    }
-
-    if(isObject(%ctrl = %client.getControlObject()) && !%client.ES_AudioSet.isMember(%actualVehicle))
-    {
-        initContainerRadiusSearch(%ctrl.getTransform(), 60, $TypeMasks::VehicleObjectType);
-        while( isObject(%foundVehicle = containerSearchNext()) )
-        {
-            if(%client.ES_AudioSet.isMember(%foundVehicle)) //vehicle has already been handled
-                continue;
-
-            if(%foundVehicle == %actualVehicle)
-            {
-                commandToClient(%client, 'ES_ConfirmHandle', %audioHandle, %ghostIndex, %actualVehicle.getDataBlock().ES_StartPitch, %actualVehicle.getDataBlock().ES_VelocityScalar);
-                %client.ES_AudioSet.add(%foundVehicle);
-                break;
-            }
-        }
-    }
+    commandToClient(%client, 'ES_ConfirmHandle', %audioHandle, %ghostIndex, %actualVehicle.getDataBlock().ES_StartPitch, %actualVehicle.getDataBlock().ES_VelocityScalar);
 }
 
 function serverCMDES_handshake(%client)
@@ -115,7 +94,7 @@ package ES_Server_Package
             %vehicle.scopeToClient(%client);
         }
 
-        %vehicle.schedule(100, ES_ApplyData);
+        %vehicle.schedule(200, ES_ApplyData);
         ES_SimSet.add(%vehicle);
 
         //clients should load this in ghosting objects loading stage
