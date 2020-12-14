@@ -15,7 +15,7 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 
 function serverCmdES_newAudioHandle(%client, %audioHandle)
 {
-    if(!%client.hasES)
+    if(!%client.hasEngineSounds)
         return;
 
     if(!isObject(%ctrl = %client.getControlObject()))
@@ -38,7 +38,12 @@ function serverCmdES_newAudioHandle(%client, %audioHandle)
 
 function serverCMDES_handshake(%client)
 {
-    %client.hasES = true;
+    %client.hasEngineSounds = true;
+    if(!isObject(%client.ES_AudioSet))
+    {
+        %client.ES_AudioSet = new simSet();
+        %client.add(%client.ES_AudioSet); // auto delete the clients simset on disconnect
+    }
 }
 
 package ES_Server_Package
@@ -60,12 +65,6 @@ package ES_Server_Package
         for(%i = 0; %i < clientGroup.getCount(); %i++)
         {
             %client = clientGroup.getObject(%i);
-            if(%client.hasES && !isObject(%client.ES_AudioSet))
-            {
-                %client.ES_AudioSet = new simSet();
-                %client.add(%client.ES_AudioSet); // auto delete the clients simset on disconnect
-            }
-
             %vehicle.scopeToClient(%client);
         }
 
