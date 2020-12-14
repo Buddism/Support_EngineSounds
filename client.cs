@@ -171,8 +171,6 @@ function ES_Client_Loop()
             %pitch = %vehicle.ES_StartPitch + vectorLen(%vehicle.getVelocity()) / %vehicle.ES_VelocityScalar;
             %pitch = mClampF(%pitch, -100.0, 100.0);
             alxSourcef(%handle, "AL_PITCH", %pitch);
-        } else {
-            %set.remove(%vehicle);
         }
     }
 
