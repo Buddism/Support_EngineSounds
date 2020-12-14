@@ -30,7 +30,9 @@ function serverCmdES_newAudioHandle(%client, %audioHandle)
         if(%client.ES_AudioSet.isMember(%foundVehicle)) //vehicle has already been handled
             continue;
 
-        commandToClient(%client, 'ES_closestVehicle', %audioHandle, %client.getGhostID(%foundVehicle), %foundVehicle.getDataBlock().ES_StartPitch, %foundVehicle.getDataBlock().ES_VelocityScalar);
+        %vehDB = %foundVehicle.getDataBlock();
+
+        commandToClient(%client, 'ES_closestVehicle', %audioHandle, %client.getGhostID(%foundVehicle), %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_PitchShiftDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime);
         %client.ES_AudioSet.add(%foundVehicle);
         break;
     }

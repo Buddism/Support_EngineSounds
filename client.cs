@@ -44,7 +44,8 @@ function ES_MarkVehicle(%vehicle)
         ES_Client_MonitorHandles();
 }
 
-function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar)
+//this is a lot of args
+function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %pitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
 {
     %con = nameToID(serverConnection);
     if(!%con.ES_allowCheck[%audioHandle])
@@ -60,7 +61,7 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
     ES_MonitorSet.remove(%closestVehicle);
     %con.ES_allowCheck[%audioHandle] = false;
 
-    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar);
+    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %pitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime);
 }
 function ES_Client_LookForVehicles()
 {
@@ -125,7 +126,7 @@ function ES_Client_MonitorHandles()
     $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles);
 }
 
-function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar)
+function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, %pitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
 {
     %con = nameToID(serverConnection);
     if(%con.ES_hasBoundHandle[%audioHandle])
@@ -141,15 +142,41 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar)
     %vehicle.ES_StartPitch = %startPitch;
     %vehicle.ES_VelocityScalar = %scalar;
 
-    ES_ActiveSet.add(%vehicle);
+    %gearCount = mClamp(%gearCount, 0, 10);
+    if(%gearCount != getWordCount(%gearSpeeds) || %gearCount != (getWordCount(%gearPitches) / 2))
+    {
+        %gearCount = 0;
+        newchathud_addline(invalid SPC getWordCount(%gearSpeeds) SPC getWordCount(%gearPitches) SPC %gearCount);
+    }
 
-    //newchathud_addline(RegistedActiveVehicle SPC %vehicle SPC %vehicle.getDataBlock().shapefile);
+    if(%gearCount > 1)
+    {
+        %vehicle.ES_GearCount = %gearCount;
+        for(%i = 0; %i < %gearCount; %i++)
+        {
+            %vehicle.ES_GearSpeed[%i] = getWord(%gearSpeeds, %i);
+
+            %gearPitchIndex = %i * 2;
+            %vehicle.ES_GearPitchStart[%i] = getWord(%gearPitches, %gearPitchIndex + 0);
+            %vehicle.ES_GearPitchPeak [%i] = getWord(%gearPitches, %gearPitchIndex + 1);
+        }
+    }
+
+    %vehicle.ES_PitchShiftDelay = mClampF(%pitchDelay   , 0.0, 1.0 );
+    %vehicle.ES_gearShiftTime   = mClampF(%gearShiftTime, 0.0, 10.0); //defaults to 0 (instant gear change)
+
+    %vehicle.ES_lastPitch = %startPitch; //initialize this var
+
+    ES_ActiveSet.add(%vehicle);
 
     if(!isEventPending($EngineSound_Schedule))
         ES_Client_Loop();
 }
-
-function ES_Client_Loop()
+function ES_mLerp(%init, %end, %t)
+{
+    return %init + (%end - %init) * %t;
+}
+function ES_Client_Loop(%lastLoopTime)
 {
     cancel($EngineSound_Schedule);
     %set = nameToID("ES_ActiveSet");
@@ -168,11 +195,49 @@ function ES_Client_Loop()
 
         if(alxIsPlaying(%handle) && alxGetSourceI(%handleIndex, "AL_LOOPING")) // is the audio handle still playing?
         {
-            %pitch = %vehicle.ES_StartPitch + vectorLen(%vehicle.getVelocity()) / %vehicle.ES_VelocityScalar;
-            %pitch = mClampF(%pitch, -100.0, 100.0);
-            alxSourcef(%handle, "AL_PITCH", %pitch);
+            if(%vehicle.ES_GearCount > 1)
+            {
+                %velocityLength = vectorLen(%vehicle.getVelocity());
+                if($Sim::Time - %vehicle.ES_lastGearShiftTime > %vehicle.ES_gearShiftTime)
+                {
+                    for(%k = %vehicle.ES_GearCount - 1; %k >= 0; %k--)
+                        if(%velocityLength > %vehicle.ES_GearSpeed[%k])
+                        {
+                            %gear = %k;
+                            if(%gear != %vehicle.ES_lastGear)
+                            {
+                                %vehicle.ES_lastGearShiftTime = $Sim::Time;
+                                %vehicle.ES_lastGear = %gear;
+                            }
+                            break;
+                        }
+                } else {
+                    %gear = %vehicle.ES_lastGear;
+                }
+
+                %nextGearSpeed = %vehicle.ES_GearSpeed[getMin(%gear + 1, %vehicle.ES_GearCount - 1)];
+                %fractOnGear = %velocityLength / %nextGearSpeed;
+
+                %gearPitch = ES_mLerp(%vehicle.ES_GearPitchStart[%gear], %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
+
+                %pitch = %vehicle.ES_StartPitch + %gearPitch;
+            } else {
+                %pitch = %vehicle.ES_StartPitch + vectorLen(%vehicle.getVelocity()) / %vehicle.ES_VelocityScalar;
+            }
+
+            %deltaTime = ($Sim::Time - %lastLoopTime);
+            %lerpSpeed = %vehicle.ES_PitchShiftDelay * %deltaTime; //this still doesnt feel right
+
+            %newPitch = getMin(%vehicle.ES_lastPitch + ((%pitch - %vehicle.ES_lastPitch) * %lerpSpeed), %pitch);
+
+            //clientcmdBottomprint("<just:center>" @ mFloatLength(%pitch - %newPitch, 2) NL %newPitch NL %lerpSpeed, 3, 1);
+            clientcmdBottomprint("<just:center>" @ mAbs(mFloatLength(%pitch - %newPitch, 2)) NL %gear, 3, 1);
+
+            %newPitch = mClampF(%newPitch, 0.001, 100.0);
+            alxSourcef(%handle, "AL_PITCH", %newPitch);
+            %vehicle.ES_lastPitch = %newPitch;
         }
     }
 
-    $EngineSound_Schedule = schedule(1, %set, ES_Client_Loop);
+    $EngineSound_Schedule = schedule(1, %set, ES_Client_Loop, %lastLoopTime = $Sim::Time);
 }
