@@ -17,46 +17,32 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 if(!isObject(ES_SimSet))
     new SimSet(ES_SimSet);
 
-function Vehicle::ES_ApplyData(%vehicle)
-{
-    %data = %vehicle.getDataBlock();
-    %soundDB = %data.ES_SoundDB;
-    %vehicle.playAudio(0, %soundDB);
-
-    %startPitch = %data.ES_StartPitch;
-    %velocityScalar = %data.ES_VelocityScalar;
-
-    %vTranform = %vehicle.getTransform();
-
-    for(%i = 0; %i < clientGroup.getCount(); %i++)
-    {
-        %client = clientGroup.getObject(%i);
-        if(%client.hasES)
-            commandToClient(%client, 'ES_markVehicle', %client.getGhostID(%vehicle));
-    }
-}
-
-function serverCmdES_checkVehicle(%client, %audioHandle, %ghostIndex)
+function serverCmdES_newAudioHandle(%client, %audioHandle)
 {
     if(!%client.hasES)
         return;
 
-    %actualVehicle = %client.resolveObjectFromGhostIndex(%ghostIndex); // nice func name here
-    if(!isObject(%actualVehicle) || ! (%actualVehicle.getType() & $TypeMasks::VehicleObjectType))
+    if(!isObject(%ctrl = %client.getControlObject()))
         return;
 
-    commandToClient(%client, 'ES_ConfirmHandle', %audioHandle, %ghostIndex, %actualVehicle.getDataBlock().ES_StartPitch, %actualVehicle.getDataBlock().ES_VelocityScalar);
+    initContainerRadiusSearch(%ctrl.getTransform(), 50, $TypeMasks::VehicleObjectType);
+    while( isObject(%foundVehicle = containerSearchNext()) )
+    {
+        if(!%foundVehicle.getDataBlock().ES_Enabled)
+            continue;
+
+        if(%client.ES_AudioSet.isMember(%foundVehicle)) //vehicle has already been handled
+            continue;
+
+        commandToClient(%client, 'ES_closestVehicle', %audioHandle, %client.getGhostID(%foundVehicle), %foundVehicle.getDataBlock().ES_StartPitch, %foundVehicle.getDataBlock().ES_VelocityScalar);
+        %client.ES_AudioSet.add(%foundVehicle);
+        break;
+    }
 }
 
 function serverCMDES_handshake(%client)
 {
     %client.hasES = true;
-}
-
-function GameConnection::ES_DelaySync(%this)
-{
-    for(%i = 0; %i < ES_SimSet.getCount(); %i++)
-        commandToClient(%this, 'ES_markVehicle', %this.getGhostID(ES_SimSet.getObject(%i))); //tell the client about vehicles to mark
 }
 
 package ES_Server_Package
@@ -67,14 +53,7 @@ package ES_Server_Package
         commandToClient(%client, 'ES_Handshake');
         return parent::AutoAdminCheck(%client);
     }
-    //dont know if ghosting is possible (leaving it in anyway)
-    function GameConnection::onClientEnterGame(%this)
-    {
-        if(%this.hasES)
-            %this.schedule(100, ES_DelaySync);
-
-        return parent::onClientEnterGame(%this);
-    }
+    
     function WheeledVehicleData::onAdd (%this, %vehicle)
     {
         %ret = parent::onAdd (%this, %vehicle); //put wheels on dat bad boi
@@ -94,11 +73,8 @@ package ES_Server_Package
             %vehicle.scopeToClient(%client);
         }
 
-        %vehicle.schedule(200, ES_ApplyData);
         ES_SimSet.add(%vehicle);
-
-        //clients should load this in ghosting objects loading stage
-        //%vehicle.setScopeAlways(); this breaks the ghost ids somehow?
+        %vehicle.playAudio(0, %this.ES_SoundDB);
         return %ret; //probably not important
     }
 };

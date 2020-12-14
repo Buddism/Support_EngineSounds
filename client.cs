@@ -1,17 +1,22 @@
+if(!isObject(ES_MonitorSet))
+    new simSet(ES_MonitorSet);
+
+//this simset is for pitch updates on moving vehicles
+if(!isObject(ES_ActiveSet))
+    new simSet(ES_ActiveSet);
+
 function clientCmdES_Handshake()
 {
     commandToServer('ES_Handshake');
+    if(!isEventPending($ES_ScanVehicleSchedule))
+        ES_Client_LookForVehicles();
 }
-function ClientCMDES_MarkVehicle(%vehicleGhostID)
+function ES_MarkVehicle(%vehicle)
 {
-    %vehicle = serverConnection.resolveGhostID(%vehicleGhostID);
     if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
         return;
 
-    if(!isObject(ES_MonitorSet))
-        new simSet(ES_MonitorSet);
-
-    if(ES_MonitorSet.isMember(%vehicle))
+    if(ES_ActiveSet.isMember(%vehicle) || ES_MonitorSet.isMember(%vehicle))
         return;
 
     %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
@@ -21,7 +26,7 @@ function ClientCMDES_MarkVehicle(%vehicleGhostID)
     %vehicle.ES_HandlePosition = %lastHandle;
     ES_MonitorSet.add(%vehicle);
 
-
+    //SORT THE VEHICLES
     %sorter = new GuiTextListCtrl();
 
     for(%i = 0; %i < ES_MonitorSet.getCount(); %i++)
@@ -33,78 +38,83 @@ function ClientCMDES_MarkVehicle(%vehicleGhostID)
         %dat = %dat SPC %sorter.getRowText(%i);
 
     ES_MonitorSet.dataList = trim(%dat);
-    //newchathud_addline(getWordCount(trim(%dat)));
-    //newchathud_addline(strreplace(trim(%dat), " ", ", "));
     %sorter.delete();
 
     if(!isEventPending($ES_MonitorSchedule))
         ES_Client_MonitorHandles();
-
-    //newchathud_addline($COUNT++);
 }
 
-function clientCmdES_ConfirmHandle(%audioHandle, %ghostIndex, %startPitch, %scalar)
+function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar)
 {
-    if(!$ES_checkHandle[%audioHandle])
+    %con = nameToID(serverConnection);
+    if(!%con.ES_allowCheck[%audioHandle])
         return;
 
-    $ES_checkHandle[%audioHandle] = false;
-    %vehicle = serverConnection.resolveGhostID(%ghostIndex);
-
-    if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
+    %closestVehicle = %con.resolveGhostID(%closestVehicleGID);
+    if(!isObject(%closestVehicle) || ! ( %closestVehicle.getType() & $TypeMasks::VehicleObjectType)  || %closestVehicle.ES_AudioHandle != 0)
         return;
 
-    %vehicle.ES_AudioHandle = %audioHandle;
+    if(!ES_MonitorSet.isMember(%closestVehicle))
+        return;
 
-    %vehicle.ES_StartPitch = %startPitch;
-    %vehicle.ES_VelocityScalar = %scalar;
+    ES_MonitorSet.remove(%closestVehicle);
+    %con.ES_allowCheck[%audioHandle] = false;
 
-    //this simset is for pitch updates on moving vehicles
-    if(!isObject(ES_ActiveSet))
-        new simSet(ES_ActiveSet);
-
-    ES_ActiveSet.add(%vehicle);
-
-    if(!isEventPending($EngineSound_Schedule))
-        ES_Client_Loop();
+    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar);
 }
+function ES_Client_LookForVehicles()
+{
+    cancel($ES_ScanVehicleSchedule);
 
+    %con = nameToID(serverConnection);
+    if(!isObject(%con))
+    {
+        $ES_ScanVehicleSchedule = schedule(1, 0, ES_Client_LookForVehicles);
+        return;
+    }
+
+    %c = %con.getCount();
+    %s = getMax(%c - 1000, 0);
+    for(%i = %s; %i < %c; %i++)
+    {
+        %obj = %con.getObject(%i);
+        if(%obj.getType() & $TypeMasks::VehicleObjectType && !%obj.ES_Marked)
+        {
+            %obj.ES_Marked = true;
+            ES_MarkVehicle(%obj);
+        }
+    }
+    $ES_ScanVehicleSchedule = schedule(1, 0, ES_Client_LookForVehicles);
+}
 function ES_Client_MonitorHandles()
 {
+    %con = nameToID(serverConnection);
+
     %set = nameTOID("ES_MonitorSet");
     %dat = %set.dataList;
     %c = getWordCount(%dat);
     for(%k = %c - 1; %k >= 0; %k--)
     {
         %obj = getWord(%dat, %k);
-        //echo(%k SPC %obj);
-        if(!isObject(%obj))
+        if(!isObject(%obj) || %obj.ES_AudioHandle != 0)
         {
+            //newchathud_addline(removedat);
             %dat = removeWord(%dat, %k);
             continue;
         }
         %handleIndex = %obj.ES_HandlePosition;
         for(%i = %handleIndex - 16; %i <= %handleIndex + 16; %i++)
         {
-            if(alxIsPlaying(%i))
+            if(alxIsPlaying(%i) && alxGetSourceI(%i, "AL_LOOPING") && alxGetSourceF(%i, "AL_GAIN") $= 0.85 && !%con.ES_AudioHandle[%i])
             {
-                %lastHandle = %i;
-                %lastHandleTime = getSimTime();
-                if(alxGetSourceI(%i, "AL_LOOPING") && alxGetSourceF(%i, "AL_GAIN") $= 0.85 && !$ES_AudioHandle[%i])
-                {
-                    //handshake is probably overkill but here we are
-                    commandToServer('ES_checkVehicle', %i, serverConnection.getGhostID(%obj));
-                    //newchathud_addline(newHandleHook);
+                //handshake is probably overkill but here we are
+                commandToServer('ES_newAudioHandle', %i);
+                %con.ES_allowCheck[%i] = true;
+                %con.ES_AudioHandle[%i] = true;
 
-                    %set.remove(%obj);
-                    %dat = removeWord(%dat, %k);
-
-                    $ES_checkHandle[%i] = true;
-                    $ES_AudioHandle[%i] = true;
-
-                    //break out of this loop
-                    break;
-                }
+                //newchathud_addline(newAudioHandle SPC %obj SPC %obj.getDataBlock().shapefile);
+                //break out of this loop
+                break;
             }
         }
     }
@@ -113,6 +123,30 @@ function ES_Client_MonitorHandles()
         return;
 
     $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles);
+}
+
+function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar)
+{
+    %con = nameToID(serverConnection);
+    if(%con.ES_hasBoundHandle[%audioHandle])
+        return;
+
+    if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
+        return;
+
+    %con.ES_hasBoundHandle[%audioHandle] = true;
+
+    %vehicle.ES_AudioHandle = %audioHandle;
+
+    %vehicle.ES_StartPitch = %startPitch;
+    %vehicle.ES_VelocityScalar = %scalar;
+
+    ES_ActiveSet.add(%vehicle);
+
+    //newchathud_addline(RegistedActiveVehicle SPC %vehicle SPC %vehicle.getDataBlock().shapefile);
+
+    if(!isEventPending($EngineSound_Schedule))
+        ES_Client_Loop();
 }
 
 function ES_Client_Loop()
