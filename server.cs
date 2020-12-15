@@ -15,6 +15,8 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 
 function serverCmdES_newAudioHandle(%client, %audioHandle)
 {
+    //talk("newAudioHandleRequest:" SPC %audioHandle);
+
     if(!%client.hasEngineSounds)
         return;
 
@@ -30,12 +32,28 @@ function serverCmdES_newAudioHandle(%client, %audioHandle)
         if(%client.ES_AudioSet.isMember(%foundVehicle)) //vehicle has already been handled
             continue;
 
-        %vehDB = %foundVehicle.getDataBlock();
-
-        commandToClient(%client, 'ES_closestVehicle', %audioHandle, %client.getGhostID(%foundVehicle), %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims);
+        %client.ES_AppendReply(%audioHandle, %foundVehicle);
         %client.ES_AudioSet.add(%foundVehicle);
         break;
     }
+}
+function GameConnection::ES_AppendReply(%client, %audioHandle, %vehicle)
+{
+    if(!isObject(%vehicle))
+        return;
+
+    %ghostID = %client.getGhostID(%vehicle);
+    if(%ghostID == -1) //sometimes the game doesnt get a ghost id immediately
+    {
+        //talk("BAD GHOST ID - WAITING");
+        %client.ES_AppendReply = %client.schedule(100, ES_AppendReply, %audioHandle, %vehicle);
+        return;
+    }
+
+    %vehDB = %vehicle.getDataBlock();
+    commandToClient(%client, 'ES_closestVehicle', %audioHandle, %ghostID, %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims);
+
+    //talk("sent: " @ %client.getGhostID(%vehicle));
 }
 
 function serverCMDES_handshake(%client)
