@@ -126,7 +126,7 @@ function ES_Client_MonitorHandles()
     $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles);
 }
 
-function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
+function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims)
 {
     %con = nameToID(serverConnection);
     if(%con.ES_hasBoundHandle[%audioHandle])
@@ -159,6 +159,8 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, 
             %gearPitchIndex = %i * 2;
             %vehicle.ES_GearPitchStart[%i] = getWord(%gearPitches, %gearPitchIndex + 0);
             %vehicle.ES_GearPitchPeak [%i] = getWord(%gearPitches, %gearPitchIndex + 1);
+
+            %vehicle.ES_GearShiftAnim[%i] = getWord(%gearShiftAnims, getMin(%i, getWordCount(%gearShiftAnims) - 1));
         }
     }
 
@@ -212,6 +214,8 @@ function ES_Client_Loop(%lastLoopTime)
 
                                 %vehicle.ES_lastGearShiftTime = $Sim::Time;
                                 %vehicle.ES_lastGear = %gear;
+                                if(%vehicle.ES_GearShiftAnim[%k] !$= "")
+                                    %vehicle.playThread(2, %vehicle.ES_GearShiftAnim[%k]); //play the animation on the client side
                             }
                             break;
                         }

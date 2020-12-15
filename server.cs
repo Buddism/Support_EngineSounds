@@ -32,7 +32,7 @@ function serverCmdES_newAudioHandle(%client, %audioHandle)
 
         %vehDB = %foundVehicle.getDataBlock();
 
-        commandToClient(%client, 'ES_closestVehicle', %audioHandle, %client.getGhostID(%foundVehicle), %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime);
+        commandToClient(%client, 'ES_closestVehicle', %audioHandle, %client.getGhostID(%foundVehicle), %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims);
         %client.ES_AudioSet.add(%foundVehicle);
         break;
     }
