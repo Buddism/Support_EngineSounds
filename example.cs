@@ -20,8 +20,15 @@ JeepVehicle.ES_VelocityScalar = 50; // TU
 // engine sound pitch = startpitch + ( vectorlen ( vehicle.velocity ) * velocityScalar )
 
 
+//gear count, will not work if you do not get the count right for ES_gearSpeeds and ES_gearPitches
 JeepVehicle.ES_GearCount = 7;
-JeepVehicle.ES_PitchShiftDelay = 0.6; // whatever unit of time this is
+// in seconds how long it takes to go from REV of last gear to REV Of new gear
+JeepVehicle.ES_GearPitchDelay = 0.1;
+//can only shift gears every 0.3 seconds
 JeepVehicle.ES_gearShiftDelay = 0.3; // SECONDS
-JeepVehicle.ES_GearSpeeds = "0 7 14 23 30 37 46";
-JeepVehicle.ES_gearPitches = "0 2 0.1 2 0.2 2 0.3 2 0.4 2 0.5 2 0.7 1.8";
+//gear speeds in TU (1:2 in terms of studs)
+JeepVehicle.ES_GearSpeeds = "0 7 14 23 30 40 60";
+//gear pitches, PITCH_START PITCH_PEAK
+JeepVehicle.ES_gearPitches = "0 1.5 0 1.7 0 1.8 0 1.9 0 2 0 2.2 0 2.3";
+//max pitch the vehicle can ever make
+JeepVehicle.ES_maxPitch = 2.7;

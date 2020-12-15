@@ -45,7 +45,7 @@ function ES_MarkVehicle(%vehicle)
 }
 
 //this is a lot of args
-function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %pitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
+function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
 {
     %con = nameToID(serverConnection);
     if(!%con.ES_allowCheck[%audioHandle])
@@ -61,7 +61,7 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
     ES_MonitorSet.remove(%closestVehicle);
     %con.ES_allowCheck[%audioHandle] = false;
 
-    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %pitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime);
+    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime);
 }
 function ES_Client_LookForVehicles()
 {
@@ -126,7 +126,7 @@ function ES_Client_MonitorHandles()
     $ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles);
 }
 
-function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, %pitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
+function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
 {
     %con = nameToID(serverConnection);
     if(%con.ES_hasBoundHandle[%audioHandle])
@@ -162,8 +162,9 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, 
         }
     }
 
-    %vehicle.ES_PitchShiftDelay = mClampF(%pitchDelay   , 0.0, 1.0 );
+    %vehicle.ES_GearPitchDelay = mClampF(%gearPitchDelay   , 0.0, 32.0 );
     %vehicle.ES_gearShiftTime   = mClampF(%gearShiftTime, 0.0, 10.0); //defaults to 0 (instant gear change)
+    %vehicle.ES_maxPitch = mClampF(%maxPitch, 0.0, 10.0);
 
     %vehicle.ES_lastPitch = %startPitch; //initialize this var
 
@@ -206,6 +207,9 @@ function ES_Client_Loop(%lastLoopTime)
                             %gear = %k;
                             if(%gear != %vehicle.ES_lastGear)
                             {
+                                %nextGearSpeed = %vehicle.ES_GearSpeed[getMin(%gear + 1, %vehicle.ES_GearCount - 1)];
+                                %vehicle.ES_ShiftedUp = %gear > %vehicle.ES_lastGear; //if the new gear is higher than the old gear
+
                                 %vehicle.ES_lastGearShiftTime = $Sim::Time;
                                 %vehicle.ES_lastGear = %gear;
                             }
@@ -221,23 +225,19 @@ function ES_Client_Loop(%lastLoopTime)
                 %gearPitch = ES_mLerp(%vehicle.ES_GearPitchStart[%gear], %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
 
                 %pitch = %vehicle.ES_StartPitch + %gearPitch;
+                if($Sim::Time - %vehicle.ES_lastGearShiftTime < %vehicle.ES_GearPitchDelay)
+                {
+                    %pitch = mLerp(%vehicle.ES_lastPitch, %pitch, ($Sim::Time - %vehicle.ES_lastGearShiftTime) / %vehicle.ES_GearPitchDelay);
+                } else %vehicle.ES_lastPitch = %pitch;
             } else {
                 %pitch = %vehicle.ES_StartPitch + vectorLen(%vehicle.getVelocity()) / %vehicle.ES_VelocityScalar;
             }
 
-            %deltaTime = ($Sim::Time - %lastLoopTime);
-            %lerpSpeed = %vehicle.ES_PitchShiftDelay * %deltaTime; //this still doesnt feel right
-
-            %newPitch = getMin(%vehicle.ES_lastPitch + ((%pitch - %vehicle.ES_lastPitch) * %lerpSpeed), %pitch);
-
-            //clientcmdBottomprint("<just:center>" @ mFloatLength(%pitch - %newPitch, 2) NL %newPitch NL %lerpSpeed, 3, 1);
-            clientcmdBottomprint("<just:center>" @ mAbs(mFloatLength(%pitch - %newPitch, 2)) NL %gear, 3, 1);
-
-            %newPitch = mClampF(%newPitch, 0.001, 100.0);
+            %newPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
             alxSourcef(%handle, "AL_PITCH", %newPitch);
-            %vehicle.ES_lastPitch = %newPitch;
         }
     }
 
-    $EngineSound_Schedule = schedule(1, %set, ES_Client_Loop, %lastLoopTime = $Sim::Time);
+    //weird bug with low delay schedules where the velocity can randomly go lower than it was last schedule even though we are accelerating
+    $EngineSound_Schedule = schedule(32, %set, ES_Client_Loop, %lastLoopTime = $Sim::Time);
 }
