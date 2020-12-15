@@ -8,8 +8,8 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
     volume = 0.9781; // (this is the only important var if you make a new audio description)
 	isLooping = 1;
 	is3D = 1;
-	ReferenceDistance = 10;
-	maxDistance = 50;
+	ReferenceDistance = 20;
+	maxDistance = 150;
 	type = $SimAudioType;
 };
 
@@ -21,7 +21,7 @@ function serverCmdES_newAudioHandle(%client, %audioHandle)
     if(!isObject(%ctrl = %client.getControlObject()))
         return;
 
-    initContainerRadiusSearch(%ctrl.getTransform(), 50, $TypeMasks::VehicleObjectType);
+    initContainerRadiusSearch(%ctrl.getTransform(), 150, $TypeMasks::VehicleObjectType);
     while( isObject(%foundVehicle = containerSearchNext()) )
     {
         if(!%foundVehicle.getDataBlock().ES_Enabled)
