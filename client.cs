@@ -227,7 +227,7 @@ function ES_Client_Loop(%lastLoopTime)
                 %pitch = %vehicle.ES_StartPitch + %gearPitch;
                 if($Sim::Time - %vehicle.ES_lastGearShiftTime < %vehicle.ES_GearPitchDelay)
                 {
-                    %pitch = mLerp(%vehicle.ES_lastPitch, %pitch, ($Sim::Time - %vehicle.ES_lastGearShiftTime) / %vehicle.ES_GearPitchDelay);
+                    %pitch = ES_mLerp(%vehicle.ES_lastPitch, %pitch, ($Sim::Time - %vehicle.ES_lastGearShiftTime) / %vehicle.ES_GearPitchDelay);
                 } else %vehicle.ES_lastPitch = %pitch;
             } else {
                 %pitch = %vehicle.ES_StartPitch + vectorLen(%vehicle.getVelocity()) / %vehicle.ES_VelocityScalar;
@@ -235,6 +235,7 @@ function ES_Client_Loop(%lastLoopTime)
 
             %newPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
             alxSourcef(%handle, "AL_PITCH", %newPitch);
+            clientcmdbottomprint(%pitch NL %newPitch NL %gear NL ($Sim::Time - %vehicle.ES_lastGearShiftTime) SPC %vehicle.ES_GearPitchDelay, 1, 1);
         }
     }
 
