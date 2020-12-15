@@ -45,7 +45,7 @@ function ES_MarkVehicle(%vehicle)
 }
 
 //this is a lot of args
-function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime)
+function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims)
 {
     %con = nameToID(serverConnection);
     if(!%con.ES_allowCheck[%audioHandle])
@@ -61,7 +61,7 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
     ES_MonitorSet.remove(%closestVehicle);
     %con.ES_allowCheck[%audioHandle] = false;
 
-    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime);
+    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
 }
 function ES_Client_LookForVehicles()
 {
@@ -172,6 +172,7 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, 
 
     ES_ActiveSet.add(%vehicle);
 
+    //newchathud_addline("registed audio handle ["@ %audioHandle @"] for ["@ %vehicle @"]"@ %vehicle.getDataBlock().shapefile);
     if(!isEventPending($EngineSound_Schedule))
         ES_Client_Loop();
 }
@@ -215,7 +216,10 @@ function ES_Client_Loop(%lastLoopTime)
                                 %vehicle.ES_lastGearShiftTime = $Sim::Time;
                                 %vehicle.ES_lastGear = %gear;
                                 if(%vehicle.ES_GearShiftAnim[%k] !$= "")
-                                    %vehicle.playThread(2, %vehicle.ES_GearShiftAnim[%k]); //play the animation on the client side
+                                {
+                                    %vehicle.playThread(0, %vehicle.ES_GearShiftAnim[%k]); //play the animation on the client side
+                                    %vehicle.schedule(32, playThread, 1, "steering"); // weird stuff
+                                }
                             }
                             break;
                         }
