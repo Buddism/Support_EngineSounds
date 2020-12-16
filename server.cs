@@ -104,6 +104,18 @@ function Vehicle::ES_EngineStart(%this)
     if(%this.ES_Playing)
         return;
 
+    %startSound = %this.getDataBlock().ES_EngineStartSound;
+    %startDelay = %this.getDataBlock().ES_EngineStartDelay;
+    if(isObject(%startSound) && %startDelay > 0)
+    {
+        %this.playAudio(1, %startSound);
+        %this.schedule(%startDelay, ES_EngineStart_Actual);
+    } else {
+        %this.ES_EngineStart_Actual();
+    }
+}
+function Vehicle::ES_EngineStart_Actual(%this)
+{
     %this.playAudio(1, %this.getDataBlock().ES_SoundDB);
     %this.ES_Playing = true;
 

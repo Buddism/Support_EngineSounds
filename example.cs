@@ -32,3 +32,11 @@ JeepVehicle.ES_GearSpeeds = "0 7 14 23 30 40 60";
 JeepVehicle.ES_gearPitches = "0 1.5 0 1.7 0 1.8 0 1.9 0 2 0 2.2 0 2.3";
 //max pitch the vehicle can ever make
 JeepVehicle.ES_maxPitch = 2.7;
+
+//Engine Shut-Off Sound
+JeepVehicle.ES_EngineStopSound = DeathCrySound;
+
+//Engine Start-On Sound
+JeepVehicle.ES_EngineStartSound = DeathCrySound;
+//Engine Sound delay (amount of time it takes for the EngineStartSound to play)
+JeepVehicle.ES_EngineStartDelay = 480; //you can caculate the time by using a command (>ONLY< ON THE CLIENT): echo(alxGetWaveLen("PATH/FILE.wav"));
