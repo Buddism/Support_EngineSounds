@@ -30,12 +30,17 @@ function clientCmdES_Handshake()
     if(!isEventPending($ES_ScanVehicleSchedule))
         ES_Client_LookForVehicles();
 }
-function ES_MarkVehicle(%vehicle)
+function clientCmdES_RemarkVehicle(%vehicleGID)
 {
+    %con = nameToID("serverConnection");
+    if(!isObject(%con))
+        return;
+
+    %vehicle = %con.resolveGhostID(%vehicleGID);
     if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
         return;
 
-    if(ES_ActiveSet.isMember(%vehicle) || ES_MonitorSet.isMember(%vehicle))
+    if(ES_ActiveSet.isMember(%vehicle))
         return;
 
     %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
@@ -43,24 +48,28 @@ function ES_MarkVehicle(%vehicle)
 
     //mark its handler because handlers arent active until the player goes near them, but they keep using an older handle id?
     %vehicle.ES_HandlePosition = %lastHandle;
-    ES_MonitorSet.add(%vehicle);
 
-    //SORT THE VEHICLES
-    %sorter = new GuiTextListCtrl();
-
-    for(%i = 0; %i < ES_MonitorSet.getCount(); %i++)
-        %sorter.addRow(%i, ES_MonitorSet.getObject(%i));
-
-	%sorter.sortNumerical(0, false); //oldest car (lowest ID) is last in the list
-
-    for(%i = 0; %i < ES_MonitorSet.getCount(); %i++)
-        %dat = %dat SPC %sorter.getRowText(%i);
-
-    ES_MonitorSet.dataList = trim(%dat);
-    %sorter.delete();
+    if(!ES_MonitorSet.isMember(%vehicle))
+        ES_MonitorSet.add(%vehicle);
 
     if(!isEventPending($ES_MonitorSchedule))
         ES_Client_MonitorHandles();
+}
+function clientCmdES_stopEngine(%vehicleGID)
+{
+    %con = nameToID("serverConnection");
+    if(!isObject(%con))
+        return;
+
+    %vehicle = %con.resolveGhostID(%vehicleGID);
+    if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
+        return;
+
+    if(ES_ActiveSet.isMember(%vehicle))
+    {
+        ES_ActiveSet.remove(%vehicle);
+        %vehicle.ES_AudioHandle = "";
+    }
 }
 
 //this is a lot of args
@@ -72,7 +81,7 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
         return;
 
     %closestVehicle = %con.resolveGhostID(%closestVehicleGID);
-    ES_Debug(11, "   isObject:%1 / isAVehicle:%2 / audioHandleInUse:%3", !isObject(%closestVehicle), ( ! ( %closestVehicle.getType() & $TypeMasks::VehicleObjectType) ), %con.ES_hasBoundHandle[%audioHandle] + 1);
+    ES_Debug(11, "   isObject:%1 / isAVehicle:%2 / audioHandleInUse:%3", !isObject(%closestVehicle), ( ! ( %closestVehicle.getType() & $TypeMasks::VehicleObjectType) ), %con.ES_hasBoundHandle[%audioHandle] + 0);
 
     if(!isObject(%closestVehicle) || ! ( %closestVehicle.getType() & $TypeMasks::VehicleObjectType)  || %closestVehicle.ES_AudioHandle != 0)
         return;
@@ -84,7 +93,7 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
     %con.ES_allowCheck[%audioHandle] = false;
     ES_Debug(12, "   set up audio handle for %1", %closestVehicleGID); //kinda useless message because of the one in ES_RegisterActiveVehicle
 
-     ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
+    ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
 }
 function ES_Client_LookForVehicles()
 {
@@ -110,21 +119,36 @@ function ES_Client_LookForVehicles()
     }
     $ES_ScanVehicleSchedule = schedule(1, 0, ES_Client_LookForVehicles);
 }
+
+function ES_MarkVehicle(%vehicle)
+{
+    if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
+        return;
+
+    if(ES_ActiveSet.isMember(%vehicle) || ES_MonitorSet.isMember(%vehicle))
+        return;
+
+    %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
+    alxStop(%lastHandle); //stop it
+
+    //mark its handler because handlers arent active until the player goes near them, but they keep using an older handle id?
+    %vehicle.ES_HandlePosition = %lastHandle;
+    ES_MonitorSet.add(%vehicle);
+
+    if(!isEventPending($ES_MonitorSchedule))
+        ES_Client_MonitorHandles();
+}
+
+
 function ES_Client_MonitorHandles()
 {
     %con = nameToID(serverConnection);
 
     %set = nameTOID("ES_MonitorSet");
-    %dat = %set.dataList;
-    %c = getWordCount(%dat);
+    %c = %set.getCount();
     for(%k = %c - 1; %k >= 0; %k--)
     {
-        %obj = getWord(%dat, %k);
-        if(!isObject(%obj) || %obj.ES_AudioHandle != 0)
-        {
-            %dat = removeWord(%dat, %k);
-            continue;
-        }
+        %obj = %set.getObject(%k);
         %handleIndex = %obj.ES_HandlePosition;
         for(%i = %handleIndex - 16; %i <= %handleIndex + 16; %i++)
         {
@@ -140,7 +164,6 @@ function ES_Client_MonitorHandles()
             }
         }
     }
-    %set.dataList = %dat;
     if(%set.getCount() == 0) //we are not looking for anything anymore
         return;
 
@@ -271,7 +294,8 @@ function ES_Client_Loop(%lastLoopTime)
                 if($Sim::Time - %vehicle.ES_lastGearShiftTime < %vehicle.ES_GearPitchDelay)
                 {
                     %pitch = ES_mLerp(%vehicle.ES_lastPitch, %pitch, ($Sim::Time - %vehicle.ES_lastGearShiftTime) / %vehicle.ES_GearPitchDelay);
-                } else %vehicle.ES_lastPitch = %pitch;
+                } else
+                    %vehicle.ES_lastPitch = %pitch;
             } else {
                 %pitch = %vehicle.ES_StartPitch + %velocityLength / %vehicle.ES_VelocityScalar;
             }

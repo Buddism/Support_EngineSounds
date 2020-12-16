@@ -26,7 +26,10 @@ function serverCmdES_newAudioHandle(%client, %audioHandle)
     initContainerRadiusSearch(%ctrl.getTransform(), 150, $TypeMasks::VehicleObjectType);
     while( isObject(%foundVehicle = containerSearchNext()) )
     {
-        if(!%foundVehicle.getDataBlock().ES_Enabled)
+        if(!%foundVehicle.getDataBlock().ES_Enabled) //vehicle does not have ES support
+            continue;
+
+        if(!%foundVehicle.ES_Playing) //engine is not playing
             continue;
 
         if(%client.ES_AudioSet.isMember(%foundVehicle)) //vehicle has already been handled
@@ -65,6 +68,40 @@ function serverCMDES_handshake(%client)
         %client.add(%client.ES_AudioSet); // auto delete the clients simset on disconnect
     }
 }
+function Vehicle::ES_EngineStop(%this)
+{
+    if(!%this.ES_Playing)
+        return;
+
+    %count = ClientGroup.getCount();
+    for(%i = 0; %i < %count; %i++)
+    {
+        %client = ClientGroup.getObject(%i);
+        if(%client.hasEngineSounds)
+        {
+            commandToClient(%client, 'ES_stopEngine', %client.getGhostID(%this));
+            %client.ES_AudioSet.remove(%this);
+        }
+    }
+    %this.stopAudio(1);
+    %this.ES_Playing = false;
+}
+function Vehicle::ES_EngineStart(%this)
+{
+    if(%this.ES_Playing)
+        return;
+
+    %this.playAudio(1, %this.getDataBlock().ES_SoundDB);
+    %this.ES_Playing = true;
+
+    %count = ClientGroup.getCount();
+    for(%i = 0; %i < %count; %i++)
+    {
+        %client = ClientGroup.getObject(%i);
+        if(%client.hasEngineSounds)
+            commandToClient(%client, 'ES_RemarkVehicle', %client.getGhostID(%this));
+    }
+}
 
 package ES_Server_Package
 {
@@ -88,8 +125,24 @@ package ES_Server_Package
             %vehicle.scopeToClient(%client);
         }
 
-        %vehicle.playAudio(0, %this.ES_SoundDB);
+        //vehicle stereo plays in slot 0
+        //%vehicle.playAudio(1, %this.ES_SoundDB);
+        %vehicle.ES_Playing = false;
         return %ret; //probably not important
+    }
+    function Vehicle::onDriverLeave (%obj, %player)
+    {
+        if(%obj.getDataBlock().ES_Enabled)
+            %obj.ES_EngineStop();
+            
+        return parent::onDriverLeave (%obj, %player);
+    }
+    function Armor::onMount (%this, %obj, %vehicle, %node)
+    {
+        if(%vehicle.getDataBlock().ES_Enabled && %node == 0 && %vehicle.getControllingClient() == 0)
+            %vehicle.ES_EngineStart();
+
+        return parent::onMount(%this, %obj, %vehicle, %node);
     }
 };
 activatePackage(ES_Server_Package);
