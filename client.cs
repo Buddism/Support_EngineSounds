@@ -163,7 +163,7 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, 
     %vehicle.ES_StartPitch = %startPitch;
     %vehicle.ES_VelocityScalar = %scalar;
 
-    %gearCount = mClamp(%gearCount, 0, 10);
+    %gearCount = mClamp(%gearCount, 0, 24);
     if(%gearCount != getWordCount(%gearSpeeds) || %gearCount != (getWordCount(%gearPitches) / 2))
     {
         %gearCount = 0;
@@ -264,7 +264,7 @@ function ES_Client_Loop(%lastLoopTime)
 
                 %currentGearSpeed = %vehicle.ES_GearSpeed[%gear];
                 %fractOnGear = (%velocityLength - %currentGearSpeed) / (%nextGearSpeed - %currentGearSpeed);
-                
+
                 %gearPitch = ES_mLerp(%vehicle.ES_GearPitchStart[%gear], %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
 
                 %pitch = %vehicle.ES_StartPitch + %gearPitch;
@@ -284,7 +284,7 @@ function ES_Client_Loop(%lastLoopTime)
                 if(%vehicle.ES_GearCount > 1)
                 {
                     //this debug line is very long
-                    clientcmdbottomprint("<just:left>pitch: " @ %newPitch @ "<just:center>gear:" SPC %gear SPC "<just:right>velocity: "@ %velocityLength NL "<just:left>progress into gear: "@ %fractOnGear @ "<just:right>gearPitches: "@ %vehicle.ES_GearPitchStart[%gear] @"->"@ %vehicle.ES_GearPitchPeak[%gear] NL "<just:center>gearSpeeds(L,C,N):"@ %vehicle.ES_GearSpeed[%gear-1] @","@ %vehicle.ES_GearSpeed[%gear] @","@ %vehicle.ES_GearSpeed[%gear+1], 1, 1);
+                    clientcmdbottomprint("<just:left>pitch: " @ %newPitch @ "<just:center>gear:" SPC %gear @"/"@ %vehicle.ES_gearCount SPC "<just:right>velocity: "@ %velocityLength NL "<just:left>progress into gear: "@ %fractOnGear @ "<just:right>gearPitches: "@ %vehicle.ES_GearPitchStart[%gear] @"->"@ %vehicle.ES_GearPitchPeak[%gear] NL "<just:center>gearSpeeds(L,C,N):"@ %vehicle.ES_GearSpeed[%gear-1] @","@ %vehicle.ES_GearSpeed[%gear] @","@ %vehicle.ES_GearSpeed[%gear+1], 1, 1);
                 } else
                     clientcmdbottomprint("<just:left>pitch: " @ %newPitch @ "<just:right>velocity: "@ %velocityLength NL "<just:left>startPitch: " @ %vehicle.ES_StartPitch @"<just:right>velocityscalar: "@ %vehicle.ES_VelocityScalar, 1, 1);
             }
