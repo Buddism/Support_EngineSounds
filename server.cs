@@ -5,12 +5,22 @@ function reloadES()
 
 datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 {
-    volume = 0.9781; // (this is the only important var if you make a new audio description)
+    //if you modify volume make sure coneOutsideVolume is the same
+    volume = 1;
+    coneOutsideVolume = 1;
+
 	isLooping = 1;
 	is3D = 1;
+
 	ReferenceDistance = 20;
 	maxDistance = 150;
-	type = $SimAudioType;
+
+    type = $SimAudioType;
+
+    //'fingerprint' for detection since who would ever use these values for an audiodescription?
+    coneInsideAngle = 133;
+    coneOutsideAngle = 337;
+
 };
 
 function serverCmdES_newAudioHandle(%client, %audioHandle)
@@ -84,6 +94,9 @@ function Vehicle::ES_EngineStop(%this)
         }
     }
     %this.stopAudio(1);
+    if(isObject(%this.getDataBlock().ES_EngineStopSound))
+        %this.playAudio(1, %this.getDataBlock().ES_EngineStopSound);
+
     %this.ES_Playing = false;
 }
 function Vehicle::ES_EngineStart(%this)
@@ -108,7 +121,7 @@ package ES_Server_Package
     function GameConnection::AutoAdminCheck(%client)
     {
         //simple handshake system
-        commandToClient(%client, 'ES_Handshake');
+        commandToClient(%client, 'ES_Handshake', AudioEngineLooping3d.coneInsideAngle, AudioEngineLooping3d.coneOutsideAngle);
         return parent::AutoAdminCheck(%client);
     }
 
@@ -134,7 +147,7 @@ package ES_Server_Package
     {
         if(%obj.getDataBlock().ES_Enabled)
             %obj.ES_EngineStop();
-            
+
         return parent::onDriverLeave (%obj, %player);
     }
     function Armor::onMount (%this, %obj, %vehicle, %node)

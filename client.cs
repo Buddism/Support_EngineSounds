@@ -5,7 +5,7 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
     new simSet(ES_ActiveSet);
 
-
+$ES::SoundDescription = 0;
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
 //DEBUG LEVEL 2 is for data recieved when the vehicle is enabled
 //DEbuG LEVEL 3 has gear shift up/down message (including animation data)
@@ -21,11 +21,14 @@ function ES_Debug(%level, %message, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9)
     }
 }
 
-function clientCmdES_Handshake()
+function clientCmdES_Handshake(%coneInsideAngle, %coneOutsideAngle)//, %maxDistance, %ReferenceDistance)
 {
     commandToServer('ES_Handshake');
     if($Pref::ES::EnableHandshakeMessage)
         newChatHud_addLine("\c6This server supports \c3EngineSounds");
+
+    $ES::InsideAngle = %coneInsideAngle;
+    $ES::OutsideAngle = %coneOutsideAngle;
 
     if(!isEventPending($ES_ScanVehicleSchedule))
         ES_Client_LookForVehicles();
@@ -144,6 +147,8 @@ function ES_Client_MonitorHandles()
 {
     %con = nameToID(serverConnection);
 
+    %CIA = $ES::InsideAngle;  //Cone Inner Angle
+    %COA = $ES::OutsideAngle; //ConeOutterAngle
     %set = nameTOID("ES_MonitorSet");
     %c = %set.getCount();
     for(%k = %c - 1; %k >= 0; %k--)
@@ -152,7 +157,7 @@ function ES_Client_MonitorHandles()
         %handleIndex = %obj.ES_HandlePosition;
         for(%i = %handleIndex - 16; %i <= %handleIndex + 16; %i++)
         {
-            if(alxIsPlaying(%i) && alxGetSourceI(%i, "AL_LOOPING") && alxGetSourceF(%i, "AL_GAIN") $= 0.85 && !%con.ES_AudioHandle[%i])
+            if(alxIsPlaying(%i) && alxGetSourceI(%i, "AL_LOOPING") && alxGetSourceI(%i, "AL_CONE_INNER_ANGLE") == %CIA && alxGetSourceI(%i, "AL_CONE_OUTER_ANGLE") == %COA && !%con.ES_AudioHandle[%i]) //'fingerprinting' of the audio handle
             {
                 commandToServer('ES_newAudioHandle', %i);
                 %con.ES_allowCheck[%i] = true;
