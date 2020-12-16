@@ -231,7 +231,7 @@ function ES_Client_Loop(%lastLoopTime)
                 if($Sim::Time - %vehicle.ES_lastGearShiftTime > %vehicle.ES_gearShiftTime)
                 {
                     for(%k = %vehicle.ES_GearCount - 1; %k >= 0; %k--)
-                        if(%velocityLength > %vehicle.ES_GearSpeed[%k])
+                        if(%velocityLength >= %vehicle.ES_GearSpeed[%k])
                         {
                             %gear = %k;
                             if(%gear != %vehicle.ES_lastGear)
@@ -257,7 +257,11 @@ function ES_Client_Loop(%lastLoopTime)
                     %gear = %vehicle.ES_lastGear;
                 }
 
-                %nextGearSpeed = %vehicle.ES_GearSpeed[getMin(%gear + 1, %vehicle.ES_GearCount - 1)];
+                if(%gear + 1 >= %vehicle.ES_GearCount) //its on its last gear
+                    %nextGearSpeed = %vehicle.getDataBlock().maxWheelSpeed;
+                else
+                    %nextGearSpeed = %vehicle.ES_GearSpeed[getMin(%gear + 1, %vehicle.ES_GearCount - 1)];
+                    
                 %fractOnGear = %velocityLength / %nextGearSpeed;
 
                 %gearPitch = ES_mLerp(%vehicle.ES_GearPitchStart[%gear], %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
