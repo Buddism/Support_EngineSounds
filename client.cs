@@ -261,9 +261,10 @@ function ES_Client_Loop(%lastLoopTime)
                     %nextGearSpeed = %vehicle.getDataBlock().maxWheelSpeed;
                 else
                     %nextGearSpeed = %vehicle.ES_GearSpeed[getMin(%gear + 1, %vehicle.ES_GearCount - 1)];
-                    
-                %fractOnGear = %velocityLength / %nextGearSpeed;
 
+                %currentGearSpeed = %vehicle.ES_GearSpeed[%gear];
+                %fractOnGear = (%velocityLength - %currentGearSpeed) / (%nextGearSpeed - %currentGearSpeed);
+                
                 %gearPitch = ES_mLerp(%vehicle.ES_GearPitchStart[%gear], %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
 
                 %pitch = %vehicle.ES_StartPitch + %gearPitch;
