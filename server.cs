@@ -135,6 +135,7 @@ package ES_Server_Package
     {
     	if(%node !$= "" && %node == 0 && %vehicle.getDataBlock().ES_Enabled)
             %vehicle.ES_EngineStop();
+        return parent::onUnMount (%this, %obj, %vehicle, %node);
     }
 
     function GameConnection::AutoAdminCheck(%client)
