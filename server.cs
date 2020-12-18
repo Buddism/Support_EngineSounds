@@ -130,6 +130,13 @@ function Vehicle::ES_EngineStart_Actual(%this)
 
 package ES_Server_Package
 {
+    //this has a callback from the engine with %node specified, but badspot calls it for some reason (without %node specified)
+    function Armor::onUnMount (%this, %obj, %vehicle, %node)
+    {
+    	if(%node !$= "" && %node == 0 && %vehicle.getDataBlock().ES_Enabled)
+            %vehicle.ES_EngineStop();
+    }
+
     function GameConnection::AutoAdminCheck(%client)
     {
         //simple handshake system
@@ -154,13 +161,6 @@ package ES_Server_Package
         //%vehicle.playAudio(1, %this.ES_SoundDB);
         %vehicle.ES_Playing = false;
         return %ret; //probably not important
-    }
-    function Vehicle::onDriverLeave (%obj, %player)
-    {
-        if(%obj.getDataBlock().ES_Enabled)
-            %obj.ES_EngineStop();
-
-        return parent::onDriverLeave (%obj, %player);
     }
     function Armor::onMount (%this, %obj, %vehicle, %node)
     {
