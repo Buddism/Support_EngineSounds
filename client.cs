@@ -110,7 +110,8 @@ function ES_Client_LookForVehicles()
     }
 
     %c = %con.getCount();
-    %s = getMax(%c - 1000, 0);
+    %scanCount = %con.getFinishedInitialGhost() ? 100 : 1000; //if they are ghosting do a larger scan
+    %s = getMax(%c - %scanCount, 0);
     for(%i = %s; %i < %c; %i++)
     {
         %obj = %con.getObject(%i);
