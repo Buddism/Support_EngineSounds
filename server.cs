@@ -128,14 +128,20 @@ function Vehicle::ES_EngineStart_Actual(%this)
     }
 }
 
+function Vehicle::ES_CheckNoDriver(%this)
+{
+    if(%this.getControllingClient() == 0)
+        %this.ES_EngineStop();
+}
+
 package ES_Server_Package
 {
-    //this has a callback from the engine with %node specified, but badspot calls it for some reason (without %node specified)
+    //this func is buggy or some addon breaks it
     function Armor::onUnMount (%this, %obj, %vehicle, %node)
     {
-    	if(%node !$= "" && %node == 0 && %vehicle.getDataBlock().ES_Enabled)
-            %vehicle.ES_EngineStop();
-            
+    	if(%vehicle.getDataBlock().ES_Enabled)
+            %vehicle.schedule(32, ES_CheckNoDriver); //delay this to avoid any issues
+
         return parent::onUnMount (%this, %obj, %vehicle, %node);
     }
 
