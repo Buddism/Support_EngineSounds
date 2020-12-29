@@ -5,7 +5,7 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
     new simSet(ES_ActiveSet);
 
-$ES::SoundDescription = 0;
+$ES::DebugLevel = 0;
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
 //DEBUG LEVEL 2 is for data recieved when the vehicle is enabled
 //DEbuG LEVEL 3 has gear shift up/down message (including animation data)
@@ -73,6 +73,8 @@ function clientCmdES_stopEngine(%vehicleGID)
         ES_ActiveSet.remove(%vehicle);
         %vehicle.ES_AudioHandle = "";
     }
+
+    ES_Debug(15, "   clientCmdES_stopEngine ( %1 )", %vehicleGID, %vehicle.getDataBlock().shapefile);
 }
 
 //this is a lot of args
