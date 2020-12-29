@@ -93,10 +93,12 @@ function Vehicle::ES_EngineStop(%this)
             %client.ES_AudioSet.remove(%this);
         }
     }
+
     %this.stopAudio(1);
     if(isObject(%this.getDataBlock().ES_EngineStopSound))
         %this.playAudio(1, %this.getDataBlock().ES_EngineStopSound);
 
+    cancel(%this.ES_EngineStartSchedule);
     %this.ES_Playing = false;
 }
 function Vehicle::ES_EngineStart(%this)
@@ -104,12 +106,14 @@ function Vehicle::ES_EngineStart(%this)
     if(%this.ES_Playing)
         return;
 
+    cancel(%this.ES_EngineStartSchedule);
+
     %startSound = %this.getDataBlock().ES_EngineStartSound;
     %startDelay = %this.getDataBlock().ES_EngineStartDelay;
     if(isObject(%startSound) && %startDelay > 0)
     {
         %this.playAudio(1, %startSound);
-        %this.schedule(%startDelay, ES_EngineStart_Actual);
+        %this.ES_EngineStartSchedule = %this.schedule(%startDelay, ES_EngineStart_Actual);
     } else {
         %this.ES_EngineStart_Actual();
     }
