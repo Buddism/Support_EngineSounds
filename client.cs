@@ -72,9 +72,9 @@ function clientCmdES_stopEngine(%vehicleGID)
     {
         ES_ActiveSet.remove(%vehicle);
         %vehicle.ES_AudioHandle = "";
-    }
-
-    ES_Debug(15, "   clientCmdES_stopEngine ( %1 )", %vehicleGID, %vehicle.getDataBlock().shapefile);
+        ES_Debug(19, "   clientCmdES_stopEngine ( %1 - %2) removed from activeset", %vehicleGID, %vehicle.getDataBlock().shapefile);
+    } else
+        ES_Debug(20, "   clientCmdES_stopEngine ( %1 - %2)", %vehicleGID, %vehicle.getDataBlock().shapefile);
 }
 
 //this is a lot of args
