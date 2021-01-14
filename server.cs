@@ -143,7 +143,7 @@ package ES_Server_Package
     //this func is buggy or some addon breaks it
     function Armor::onUnMount (%this, %obj, %vehicle, %node)
     {
-    	if(%vehicle.getDataBlock().ES_Enabled)
+    	if(isObject(%vehicle) && %vehicle.getDataBlock().ES_Enabled)
             %vehicle.schedule(32, ES_CheckNoDriver); //delay this to avoid any issues
 
         return parent::onUnMount (%this, %obj, %vehicle, %node);
