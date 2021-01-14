@@ -66,7 +66,8 @@ function GameConnection::ES_AppendReply(%client, %audioHandle, %vehicle)
     }
 
     %vehDB = %vehicle.getDataBlock();
-    commandToClient(%client, 'ES_closestVehicle', %audioHandle, %ghostID, %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims);
+	%audioDescData = %vehDB.ES_SoundDB.getDescription();
+    commandToClient(%client, 'ES_closestVehicle', %audioHandle, %ghostID, %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims, %audioDescData);
 
     //talk("sent: " @ %client.getGhostID(%vehicle));
 }

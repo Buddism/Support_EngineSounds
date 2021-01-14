@@ -78,7 +78,7 @@ function clientCmdES_stopEngine(%vehicleGID)
 }
 
 //this is a lot of args
-function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims)
+function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims, %audioDescription)
 {
     %con = nameToID(serverConnection);
     ES_Debug(10, "RECIEVE" SPC %closestVehicleGID);
@@ -97,6 +97,12 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
     ES_MonitorSet.remove(%closestVehicle);
     %con.ES_allowCheck[%audioHandle] = false;
     ES_Debug(12, "   set up audio handle for %1", %closestVehicleGID); //kinda useless message because of the one in ES_RegisterActiveVehicle
+
+	// if(%audioDescription.ES_AdjustedVolume == false)
+	// {
+	// 	%audioDescription.volume *= 3;
+	// 	%audioDescription.ES_AdjustedVolume = true;
+	// }
 
     ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
 }
@@ -313,6 +319,9 @@ function ES_Client_Loop(%lastLoopTime)
 
             %newPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
             alxSourcef(%handle, "AL_PITCH", %newPitch);
+
+			//alxSourcef(%handle, "AL_GAIN", 			1 / 3);
+			//alxSourcef(%handle, "AL_GAIN_LINEAR", 	1 / 3);
 
             if($ES::DebugLevel >= 1 && %vehicle == %myMount)
             {
