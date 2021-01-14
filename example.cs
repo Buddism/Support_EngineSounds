@@ -40,3 +40,5 @@ JeepVehicle.ES_EngineStopSound = DeathCrySound;
 JeepVehicle.ES_EngineStartSound = DeathCrySound;
 //Engine Sound delay (amount of time it takes for the EngineStartSound to play)
 JeepVehicle.ES_EngineStartDelay = 480; //you can caculate the time by using a command (>ONLY< ON THE CLIENT): echo(alxGetWaveLen("PATH/FILE.wav"));
+
+JeepVehicle.ES_AudioSlot = 3;

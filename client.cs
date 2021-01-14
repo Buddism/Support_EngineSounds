@@ -218,6 +218,9 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, 
 
     %vehicle.ES_GearPitchDelay  = mClampF(%gearPitchDelay, 0.0, 32.0 );
     %vehicle.ES_gearShiftTime   = mClampF(%gearShiftTime, 0.0, 10.0); //defaults to 0 (instant gear change)
+	if(%maxPitch == 0)
+		%maxPitch = 10;
+		
     %vehicle.ES_maxPitch        = mClampF(%maxPitch, 0.0, 10.0);
 
     %vehicle.ES_lastPitch = %startPitch; //initialize this var

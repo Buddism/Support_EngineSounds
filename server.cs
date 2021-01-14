@@ -94,9 +94,9 @@ function Vehicle::ES_EngineStop(%this)
         }
     }
 
-    %this.stopAudio(1);
+    %this.stopAudio(%this.getDatablock().ES_AudioSlot);
     if(isObject(%this.getDataBlock().ES_EngineStopSound))
-        %this.playAudio(1, %this.getDataBlock().ES_EngineStopSound);
+        %this.playAudio(%this.getDatablock().ES_AudioSlot, %this.getDataBlock().ES_EngineStopSound);
 
     cancel(%this.ES_EngineStartSchedule);
     %this.ES_Playing = false;
@@ -112,7 +112,7 @@ function Vehicle::ES_EngineStart(%this)
     %startDelay = %this.getDataBlock().ES_EngineStartDelay;
     if(isObject(%startSound) && %startDelay > 0)
     {
-        %this.playAudio(1, %startSound);
+        %this.playAudio(%this.getDatablock().ES_AudioSlot, %startSound);
         %this.ES_EngineStartSchedule = %this.schedule(%startDelay, ES_EngineStart_Actual);
     } else {
         %this.ES_EngineStart_Actual();
@@ -120,7 +120,7 @@ function Vehicle::ES_EngineStart(%this)
 }
 function Vehicle::ES_EngineStart_Actual(%this)
 {
-    %this.playAudio(1, %this.getDataBlock().ES_SoundDB);
+    %this.playAudio(%this.getDatablock().ES_AudioSlot, %this.getDataBlock().ES_SoundDB);
     %this.ES_Playing = true;
 
     %count = ClientGroup.getCount();
@@ -171,6 +171,9 @@ package ES_Server_Package
 
         //vehicle stereo plays in slot 0
         //%vehicle.playAudio(1, %this.ES_SoundDB);
+		if(%this.ES_AudioSlot $= "")
+			%this.ES_AudioSlot = 1;
+			
         %vehicle.ES_Playing = false;
         return %ret; //probably not important
     }
