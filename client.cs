@@ -5,6 +5,8 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
     new simSet(ES_ActiveSet);
 
+$ES::Version = "1.0.0";
+
 $ES::DebugLevel = 0;
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
 //DEBUG LEVEL 2 is for data recieved when the vehicle is enabled
@@ -21,11 +23,15 @@ function ES_Debug(%level, %message, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9)
     }
 }
 
-function clientCmdES_Handshake(%coneInsideAngle, %coneOutsideAngle)//, %maxDistance, %ReferenceDistance)
+function clientCmdES_Handshake(%serverVersion, %coneInsideAngle, %coneOutsideAngle)
 {
     commandToServer('ES_Handshake');
     if($Pref::ES::EnableHandshakeMessage)
-        newChatHud_addLine("\c6This server supports \c3EngineSounds");
+	{
+		if($ES::Version !$= %serverVersion)
+			newChatHud_addLine("\c6This server is running \c3EngineSounds\c6 version \c3"@ %serverVersion @"\c6, you are using version\c3 "@ $ES::Version);
+		else newChatHud_addLine("\c6This server supports \c3EngineSounds");
+	}
 
     $ES::InsideAngle = %coneInsideAngle;
     $ES::OutsideAngle = %coneOutsideAngle;
@@ -106,14 +112,35 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
 
     ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
 }
+
+function ES_MarkVehicle(%vehicle)
+{
+    if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
+        return;
+
+    if(ES_ActiveSet.isMember(%vehicle) || ES_MonitorSet.isMember(%vehicle))
+        return;
+
+    %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
+    alxStop(%lastHandle); //stop it, as it doesnt need to actually play
+
+    //mark its handler because handlers arent active until the player goes near them, but they keep using an older handle id?
+    %vehicle.ES_HandlePosition = %lastHandle;
+    ES_MonitorSet.add(%vehicle);
+
+    if(!isEventPending($ES_MonitorSchedule))
+        ES_Client_MonitorHandles();
+}
+
+//this function scans the top of the serverconnection objects for new vehicles to be marked for when they expose the audioHandlerID to TS
 function ES_Client_LookForVehicles()
 {
     cancel($ES_ScanVehicleSchedule);
 
     %con = nameToID(serverConnection);
-    if(!isObject(%con))
+    if(!isObject(%con)) //serverConnection is doesn't exist anymore, cancel the scan if its still running
     {
-        $ES_ScanVehicleSchedule = schedule(1, 0, ES_Client_LookForVehicles);
+		cancel($ES_ScanVehicleSchedule);
         return;
     }
 
@@ -132,29 +159,16 @@ function ES_Client_LookForVehicles()
     $ES_ScanVehicleSchedule = schedule(1, 0, ES_Client_LookForVehicles);
 }
 
-function ES_MarkVehicle(%vehicle)
-{
-    if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
-        return;
 
-    if(ES_ActiveSet.isMember(%vehicle) || ES_MonitorSet.isMember(%vehicle))
-        return;
-
-    %lastHandle = alxplay(AdminSound); // get the most recent audio handle ID (hacky)
-    alxStop(%lastHandle); //stop it
-
-    //mark its handler because handlers arent active until the player goes near them, but they keep using an older handle id?
-    %vehicle.ES_HandlePosition = %lastHandle;
-    ES_MonitorSet.add(%vehicle);
-
-    if(!isEventPending($ES_MonitorSchedule))
-        ES_Client_MonitorHandles();
-}
-
-
+//monitor the logged vehicles from 'ES_Client_LookForVehicles' for exposed audioHandles
 function ES_Client_MonitorHandles()
 {
     %con = nameToID(serverConnection);
+	if(!isObject(%con))
+	{
+		cancel($ES_MonitorSchedule);
+		return;
+	}
 
     %CIA = $ES::InsideAngle;  //Cone Inner Angle
     %COA = $ES::OutsideAngle; //ConeOutterAngle
@@ -168,12 +182,18 @@ function ES_Client_MonitorHandles()
         {
             if(alxIsPlaying(%i) && alxGetSourceI(%i, "AL_LOOPING") && alxGetSourceI(%i, "AL_CONE_INNER_ANGLE") == %CIA && alxGetSourceI(%i, "AL_CONE_OUTER_ANGLE") == %COA && !%con.ES_AudioHandle[%i]) //'fingerprinting' of the audio handle
             {
+				//things can go wrong with this handshake easily
+				//handshake with the server for more accuracy if it is the correct vehicle
                 commandToServer('ES_newAudioHandle', %i);
+				//callback from the server is clientCmdES_closestVehicle, and it removes this vehicle from ES_MonitorSet if it succeeds
+
+				//allow the server to tell the client to save these values
                 %con.ES_allowCheck[%i] = true;
                 %con.ES_AudioHandle[%i] = true;
 
                 ES_Debug(9, newAudioHandle SPC %obj SPC %obj.getDataBlock().shapefile);
-                //break out of this loop
+
+                //break out of this loop, because we are done with this marker
                 break;
             }
         }
@@ -250,7 +270,14 @@ function ES_Client_Loop(%lastLoopTime)
     if(!isObject(%set) || %set.getCount() == 0)
         return;
 
-    if($ES::DebugLevel >= 1 && isObject(%con = serverConnection) && isObject(%ctrl = %con.getControlObject()))
+	%con = serverConnection;
+	if(!isObject(%con))
+	{
+		cancel($EngineSound_Schedule);
+		return;
+	}
+
+    if($ES::DebugLevel >= 1 && isObject(%ctrl = %con.getControlObject()))
         %myMount = %ctrl.getObjectMount();
 
     for(%i = %set.getCount() - 1; %I >= 0; %I--)
@@ -281,7 +308,7 @@ function ES_Client_Loop(%lastLoopTime)
 
                                 %vehicle.ES_lastGearShiftTime = $Sim::Time;
                                 %vehicle.ES_lastGear = %gear;
-                                if(%vehicle.ES_GearShiftAnim[%k] !$= "")
+                                if(%vehicle.ES_GearShiftAnim[%k] !$= "") //this is fairly jank
                                 {
                                     %vehicle.playThread(0, %vehicle.ES_GearShiftAnim[%k]); //play the animation on the client side
                                     //if you specify an animation that doesnt exist this will break steering
@@ -335,6 +362,6 @@ function ES_Client_Loop(%lastLoopTime)
         }
     }
 
-    //weird bug with low delay schedules where the velocity can randomly go lower than it was last schedule even though we are accelerating
+    //weird bug with low delay schedules where the velocity randomly fluctuates
     $EngineSound_Schedule = schedule(32, %set, ES_Client_Loop, %lastLoopTime = $Sim::Time);
 }

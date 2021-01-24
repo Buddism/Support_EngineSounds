@@ -3,6 +3,8 @@ function reloadES()
     exec("./server.cs");
 }
 
+$ES::Version = "1.0.0";
+
 exec("./events.cs");
 
 datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
@@ -176,7 +178,7 @@ package ES_Server_Package
     function GameConnection::AutoAdminCheck(%client)
     {
         //simple handshake system
-        commandToClient(%client, 'ES_Handshake', AudioEngineLooping3d.coneInsideAngle, AudioEngineLooping3d.coneOutsideAngle);
+        commandToClient(%client, 'ES_Handshake', $ES::Version, AudioEngineLooping3d.coneInsideAngle, AudioEngineLooping3d.coneOutsideAngle);
         return parent::AutoAdminCheck(%client);
     }
 
