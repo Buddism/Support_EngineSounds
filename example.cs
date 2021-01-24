@@ -12,7 +12,7 @@ datablock AudioProfile(ES_Engine_Loop)
 //is the vehicle engine sound enabled
 JeepVehicle.ES_Enabled = true;
 //vehicle engine sound DB
-JeepVehicle.ES_SoundDB = nameToID(ES_Engine_Loop);
+JeepVehicle.ES_SoundDB = ES_Engine_Loop;
 //vehicle start pitch (standard is 1)
 JeepVehicle.ES_StartPitch = 1;
 //vehicle velocity scalar
