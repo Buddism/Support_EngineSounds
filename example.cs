@@ -2,8 +2,8 @@ datablock AudioProfile(ES_Engine_Loop)
 {
 	filename = "./exampleEngineLoop.wav";
 	//keep this description if you are making your own audioprofile (IMPORTANT)
-	description = AudioEngineLooping3d;
-	uiName = "Engine Loop";
+	description = AudioEngineLooping3d; //only use this audioprofile in engine loops
+	uiName = ""; //dont suggest using a uiname since the way audio is detected
 
 	preload = true;
 };
