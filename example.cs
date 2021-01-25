@@ -9,6 +9,8 @@ datablock AudioProfile(ES_Engine_Loop)
 };
 
 
+//these variables can be declared inside of the vehicle datablocks {}; (remove prefix of JeepVehicle.)
+
 //is the vehicle engine sound enabled
 JeepVehicle.ES_Enabled = true;
 //vehicle engine sound DB
