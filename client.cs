@@ -277,6 +277,7 @@ function ES_Client_Loop(%lastLoopTime)
 		return;
 	}
 
+	%ctrl = %con.getControlObject();
 	if($ES::DebugLevel >= 1 && isObject(%ctrl = %con.getControlObject()))
 		%myMount = %ctrl.getObjectMount();
 
@@ -345,12 +346,55 @@ function ES_Client_Loop(%lastLoopTime)
 			}
 
 			%newPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
+
+			%serverPlayer = clientgroup.getobject(0).player;
+
+			%myPosition = %serverPlayer.getEyePoint();
+			%Velocity = %serverPlayer.getVelocity();
+
+			%dopplerFactor = -1.0;
+
+			%serverVehicle = _e.vehicle;
+
+			//basically stole a bunch of math from https://github.com/kcat/openal-soft
+			%ToSource = vectorNormalize(vectorSub(%serverVehicle.getPosition(), %myPosition));
+
+			//const alu::Vector &lvelocity = context->mParams.Velocity;
+			%lvelocity = %serverVehicle.getVelocity();
+
+			//float vss{Velocity.dot_product(ToSource) * -DopplerFactor};
+			%vss = vectorDot(%Velocity, %ToSource) * -%dopplerFactor;
+			//float vls{lvelocity.dot_product(ToSource) * -DopplerFactor};
+			%vls = vectorDot(%lvelocity, %ToSource) * -%dopplerFactor;
+
+			//const float SpeedOfSound{context->mParams.SpeedOfSound};
+			%SpeedOfSound = 343.3;
+			if( ! ( %vls < %SpeedOfSound ) ) //what
+			{
+				//Listener moving away from the source at the speed of sound. Sound waves can't catch it.
+				%newPitch = 0.0;
+				clientcmdcenterprint("SPEED OF SOUND AWAY", 1);
+			}
+			else if( ! (%vss < %SpeedOfSound) ) //why isit ! ( a < b )
+			{
+				//Source moving toward the listener at the speed of sound. Sound waves bunch up to extreme frequencies.
+				%newPitch = 0.0;
+				clientcmdcenterprint("SPEED OF SOUND TOWARDS", 1);
+			}
+			else
+			{
+				//Source and listener movement is nominal. Calculate the proper  doppler shift.
+				%newPitch *= (%SpeedOfSound -  %vls) / (%SpeedOfSound - %vss);
+
+				clientcmdcenterprint("SOS: " @ %SpeedOfSound NL "VLS: " @ %VLS NL "VSS: " @ %VSS NL (%SpeedOfSound -  %vls) / (%SpeedOfSound - %vss), 1);
+			}
+
 			alxSourcef(%handle, "AL_PITCH", %newPitch);
 
 			//alxSourcef(%handle, "AL_GAIN", 			1 / 3);
 			//alxSourcef(%handle, "AL_GAIN_LINEAR", 	1 / 3);
 
-			if($ES::DebugLevel >= 1 && %vehicle == %myMount)
+			if($ES::DebugLevel >= 1)// && %vehicle == %myMount)
 			{
 				if(%vehicle.ES_GearCount > 1)
 				{
