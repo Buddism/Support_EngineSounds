@@ -267,7 +267,7 @@ function ES_Client_Loop(%lastLoopTime)
 {
 	cancel($EngineSound_Schedule);
 	%set = nameToID("ES_ActiveSet");
-	if(!isObject(%set) || %set.getCount() == 0)
+	if(!isObject(%set))
 		return;
 
 	%con = serverConnection;
@@ -279,6 +279,10 @@ function ES_Client_Loop(%lastLoopTime)
 
 	if($ES::DebugLevel >= 1 && isObject(%ctrl = %con.getControlObject()))
 		%myMount = %ctrl.getObjectMount();
+		
+	if(isObject(%ctrl = %con.getControlObject()))
+		alListener3f("AL_VELOCITY", vectorScale(%ctrl.getVelocity(), 1.0));
+
 
 	for(%i = %set.getCount() - 1; %I >= 0; %I--)
 	{
@@ -345,6 +349,8 @@ function ES_Client_Loop(%lastLoopTime)
 			}
 
 			%newPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
+
+			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0));
 			alxSourcef(%handle, "AL_PITCH", %newPitch);
 
 			//alxSourcef(%handle, "AL_GAIN", 			1 / 3);
