@@ -7,7 +7,9 @@ if(!isObject(ES_ActiveSet))
 
 $ES::Version = "1.0.0";
 
-$ES::DebugLevel = 0;
+if($ES::DebugLevel $= "") //is it undefined?
+	$ES::DebugLevel = 0;
+
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
 //DEBUG LEVEL 2 is for data recieved when the vehicle is enabled
 //DEbuG LEVEL 3 has gear shift up/down message (including animation data)
@@ -21,6 +23,14 @@ function ES_Debug(%level, %message, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9)
 
 		newChatHud_addLine("ES_DEBUG: " @ %message);
 	}
+}
+
+function ES_filterString(%str, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9, %a10, %a11, %a12, %a13, %a14, %a15, %a16, %a17, %a18, %a19)
+{
+	for(%i = 19; %i >= 1; %i--) //start with larger numbers
+		%str = strreplace(%str, "%" @ %i, %a[%i]);
+
+	return %str;
 }
 
 function clientCmdES_Handshake(%serverVersion, %coneInsideAngle, %coneOutsideAngle)
@@ -84,7 +94,7 @@ function clientCmdES_stopEngine(%vehicleGID)
 }
 
 //this is a lot of args
-function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims, %audioDescription)
+function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims, %audioDescription)
 {
 	%con = nameToID(serverConnection);
 	ES_Debug(10, "RECIEVE" SPC %closestVehicleGID);
@@ -108,9 +118,10 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %startPitc
 	// {
 	// 	%audioDescription.volume *= 3;
 	// 	%audioDescription.ES_AdjustedVolume = true;
+	// 	newChatHud_addLine(%audiodescription);
 	// }
 
-	ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
+	ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
 }
 
 function ES_MarkVehicle(%vehicle)
@@ -204,7 +215,7 @@ function ES_Client_MonitorHandles()
 	$ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles);
 }
 
-function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims)
+function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims)
 {
 	%con = nameToID(serverConnection);
 	if(%con.ES_hasBoundHandle[%audioHandle])
@@ -217,8 +228,15 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, 
 
 	%vehicle.ES_AudioHandle = %audioHandle;
 
-	%vehicle.ES_StartPitch = %startPitch;
-	%vehicle.ES_VelocityScalar = %scalar;
+	%vehicle.ES_StartValues = %StartValues;
+
+	%vehicle.ES_StartPitch  = getWord(%StartValues, 0);
+	%vehicle.ES_StartVolume = getWord(%StartValues, 1);
+
+	%vehicle.ES_VelocityScalar = getWord(%scalars, 0);
+	%vehicle.ES_VolumeScalar   = getWord(%scalars, 1);
+
+	%vehicle.ES_SupportsVolume = %vehicle.ES_VolumeScalar + %vehicle.ES_StartVolume > 0;
 
 	%gearCount = mClamp(%gearCount, 0, 24);
 	if(%gearCount != getWordCount(%gearSpeeds) || %gearCount != (getWordCount(%gearPitches) / 2))
@@ -249,9 +267,9 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %startPitch, %scalar, 
 		
 	%vehicle.ES_maxPitch		= mClampF(%maxPitch, 0.0, 10.0);
 
-	%vehicle.ES_lastPitch = %startPitch; //initialize this var
+	%vehicle.ES_lastPitch = %StartValues; //initialize this var
 
-	ES_DEBUG(2, "startPitch(%1), scalar(%2), maxPitch(%3), gearPitchDelay(%4), gearCount(%5), gearShiftTime(%6), gearShiftAnims(%7)", %startPitch, %scalar, %maxPitch, %gearPitchDelay, %gearCount, %gearShiftTime, %gearShiftAnims);
+	ES_DEBUG(2, "StartValues(%1), scalars(%2), maxPitch(%3), gearPitchDelay(%4), gearCount(%5), gearShiftTime(%6), gearShiftAnims(%7)", %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearShiftTime, %gearShiftAnims);
 
 	ES_ActiveSet.add(%vehicle);
 
@@ -280,6 +298,10 @@ function ES_Client_Loop(%lastLoopTime)
 	%ctrl = %con.getControlObject();
 	if($ES::DebugLevel >= 1 && isObject(%ctrl = %con.getControlObject()))
 		%myMount = %ctrl.getObjectMount();
+	
+	if(isObject(%ctrl = %con.getControlObject()))
+		alListener3f("AL_VELOCITY", vectorScale(%ctrl.getVelocity(), 1.0));
+
 
 	for(%i = %set.getCount() - 1; %I >= 0; %I--)
 	{
@@ -336,66 +358,56 @@ function ES_Client_Loop(%lastLoopTime)
 				%gearPitch = ES_mLerp(%vehicle.ES_GearPitchStart[%gear], %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
 
 				%pitch = %vehicle.ES_StartPitch + %gearPitch;
+				%volume = %vehicle.ES_startVolume + %fractOnGear / %vehicle.ES_VolumeScalar;
 				if($Sim::Time - %vehicle.ES_lastGearShiftTime < %vehicle.ES_GearPitchDelay)
 				{
 					%pitch = ES_mLerp(%vehicle.ES_lastPitch, %pitch, ($Sim::Time - %vehicle.ES_lastGearShiftTime) / %vehicle.ES_GearPitchDelay);
-				} else
+					%volume = ES_mLerp(%vehicle.ES_lastVolume, %volume, ($Sim::Time - %vehicle.ES_lastGearShiftTime) / %vehicle.ES_GearPitchDelay);
+				} else {
 					%vehicle.ES_lastPitch = %pitch;
+					%vehicle.ES_lastVolume = %volume;
+				}		
 			} else {
 				%pitch = %vehicle.ES_StartPitch + %velocityLength / %vehicle.ES_VelocityScalar;
+				%volume = %vehicle.ES_startVolume + (%velocityLength / %vehicle.ES_VolumeScalar);
 			}
 
-			%newPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
+			%clampedPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
 
-			%serverPlayer = clientgroup.getobject(0).player;
-
-			%myPosition = %serverPlayer.getEyePoint();
-			%Velocity = %serverPlayer.getVelocity();
-
-			%dopplerFactor = -1.0;
-
-			%serverVehicle = _e.vehicle;
-
-			//basically stole a bunch of math from https://github.com/kcat/openal-soft
-			%ToSource = vectorNormalize(vectorSub(%serverVehicle.getPosition(), %myPosition));
-
-			//const alu::Vector &lvelocity = context->mParams.Velocity;
-			%lvelocity = %serverVehicle.getVelocity();
-
-			//float vss{Velocity.dot_product(ToSource) * -DopplerFactor};
-			%vss = vectorDot(%Velocity, %ToSource) * -%dopplerFactor;
-			//float vls{lvelocity.dot_product(ToSource) * -DopplerFactor};
-			%vls = vectorDot(%lvelocity, %ToSource) * -%dopplerFactor;
-
-			//const float SpeedOfSound{context->mParams.SpeedOfSound};
-			%SpeedOfSound = 343.3;
-			if( ! ( %vls < %SpeedOfSound ) ) //what
-			{
-				//Listener moving away from the source at the speed of sound. Sound waves can't catch it.
-				%newPitch = 0.0;
-				clientcmdcenterprint("SPEED OF SOUND AWAY", 1);
-			}
-			else if( ! (%vss < %SpeedOfSound) ) //why isit ! ( a < b )
-			{
-				//Source moving toward the listener at the speed of sound. Sound waves bunch up to extreme frequencies.
-				%newPitch = 0.0;
-				clientcmdcenterprint("SPEED OF SOUND TOWARDS", 1);
-			}
+			if(!%vehicle.ES_SupportsVolume)
+				%clampedVolume = 1;
 			else
-			{
-				//Source and listener movement is nominal. Calculate the proper  doppler shift.
-				%newPitch *= (%SpeedOfSound -  %vls) / (%SpeedOfSound - %vss);
+				%clampedVolume = mClampF(%volume / 3, 0, 1);
 
-				clientcmdcenterprint("SOS: " @ %SpeedOfSound NL "VLS: " @ %VLS NL "VSS: " @ %VSS NL (%SpeedOfSound -  %vls) / (%SpeedOfSound - %vss), 1);
-			}
+			//AL_GAIN_LINEAR is AL_GAIN but uses 0->1
 
-			alxSourcef(%handle, "AL_PITCH", %newPitch);
+			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0)); //this requires a modified openAl32.dll for doppler effect support
+			alxSourcef(%handle, "AL_PITCH", %clampedPitch);
 
-			//alxSourcef(%handle, "AL_GAIN", 			1 / 3);
-			//alxSourcef(%handle, "AL_GAIN_LINEAR", 	1 / 3);
+			alxSourcef(%handle, "AL_GAIN_LINEAR", %clampedVolume);
 
 			if($ES::DebugLevel >= 1)// && %vehicle == %myMount)
 			{
+				//round and trim the extra 0s (ex: 1.10 => 1.1)
+				%velocityLength = 0 + mFloatLength(%velocityLength, 2);
+				%fractOnGear 	= 0 + mFloatLength(%fractOnGear, 2);
+				%clampedPitch 	= 0 + mFloatLength(%clampedPitch, 2);
+				%volume 		= 0 + mFloatLength(%volume, 2);
+
+				if(%vehicle.ES_SupportsVolume)
+				{
+					%volumeString = ES_filterString("<just:left>volume: %1<tab:260,450>\tstartVolume: %2\tvolumeScalar: %3" NL
+													"RealGain_Linear: %5<tab:440>\tRealGain: %4",
+														%clampedVolume SPC %volume,
+														%vehicle.ES_StartVolume,
+														%vehicle.ES_VolumeScalar,
+														alxGetSourcef(%handle, "AL_GAIN"),
+														alxGetSourcef(%handle, "AL_GAIN_LINEAR")
+													);
+				} else {
+					%volumeString = "supportsVolume: false";
+				}
+					
 				if(%vehicle.ES_GearCount > 1)
 				{
 					//this debug line is very long

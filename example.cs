@@ -122,3 +122,25 @@ JeepVehicle.ES_AudioSlot = 3;
 JeepVehicle.ES_GearShiftAnim = "gearShiftAnim0 gearShiftAnim1 gearShiftAnim2 gearShiftAnim3 gearShiftAnim4 gearShiftAnim5 gearShiftAnim6";
 //OR just this for every gear
 JeepVehicle.ES_GearShiftAnim = "gearShiftAnimAllGears";
+
+JeepVehicle.engineTorque = 2000;
+JeepVehicle.maxWheelSpeed = 50;
+
+//NEW AUDIO STUFF
+
+//INITIAL VOLUME LEVEL
+JeepVehicle.ES_StartVolume = 0.2;
+
+//VOLUME SCALAR
+JeepVehicle.ES_VolumeScalar = 0.2;
+
+//volume algorithm
+
+//this is a linear line
+//	PROGRESS_TO_NEXT_GEAR is 1 at the peak of the gear, and 0 at the start
+//  VOLUME = START_VOLUME + PROGRESS_TO_NEXT_GEAR * VOLUME_SCALAR
+
+//less horrible values
+//JeepVehicle.ES_gearPitches = "0.7 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4";
+//JeepVehicle.ES_maxPitch = 1.7;
+//JeepVehicle.ES_StartPitch = 0;
