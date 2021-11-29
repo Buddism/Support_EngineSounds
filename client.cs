@@ -5,7 +5,7 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
 	new simSet(ES_ActiveSet);
 
-$ES::Version = "1.0.0";
+$ES::Version = "1.0.1";
 
 if($ES::DebugLevel $= "")
 	$ES::DebugLevel = 0;

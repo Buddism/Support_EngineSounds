@@ -3,7 +3,7 @@ function reloadES()
 	exec("./server.cs");
 }
 
-$ES::Version = "1.0.0";
+$ES::Version = "1.0.1";
 
 exec("./events.cs");
 
