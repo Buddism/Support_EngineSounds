@@ -90,7 +90,7 @@ function serverCMDES_handshake(%client, %version)
 		%client.add(%client.ES_AudioSet); // auto delete the clients simset on disconnect
 	}
 }
-function Vehicle::ES_EngineStop(%this)
+function Vehicle::ES_EngineStop(%this, %skipStopNoise)
 {
 	if(!%this.ES_Playing && !isEventPending(%this.ES_EngineStartSchedule))
 		return false;
@@ -107,7 +107,7 @@ function Vehicle::ES_EngineStop(%this)
 	}
 
 	%this.stopAudio(%this.getDatablock().ES_AudioSlot);
-	if(isObject(%this.getDataBlock().ES_EngineStopSound))
+	if(!%skipStopNoise && isObject(%this.getDataBlock().ES_EngineStopSound))
 		%this.playAudio(%this.getDatablock().ES_AudioSlot, %this.getDataBlock().ES_EngineStopSound);
 
 	cancel(%this.ES_EngineStartSchedule);
@@ -115,7 +115,7 @@ function Vehicle::ES_EngineStop(%this)
 
 	return true;
 }
-function Vehicle::ES_EngineStart(%this)
+function Vehicle::ES_EngineStart(%this, %skipStartNoise)
 {
 	if(%this.ES_Playing || isEventPending(%this.ES_EngineStartSchedule))
 		return false;
@@ -124,7 +124,7 @@ function Vehicle::ES_EngineStart(%this)
 
 	%startSound = %this.getDataBlock().ES_EngineStartSound;
 	%startDelay = %this.getDataBlock().ES_EngineStartDelay;
-	if(isObject(%startSound) && %startDelay > 0)
+	if(!%skipStartNoise && isObject(%startSound) && %startDelay > 0)
 	{
 		%this.playAudio(%this.getDatablock().ES_AudioSlot, %startSound);
 		%this.ES_EngineStartSchedule = %this.schedule(%startDelay, ES_EngineStart_Actual);
