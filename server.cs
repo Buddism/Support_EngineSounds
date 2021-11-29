@@ -3,7 +3,8 @@ function reloadES()
 	exec("./server.cs");
 }
 
-$ES::Version = "1.0.1";
+$ES::Version = "2.0.0";
+$EngineAudioType = 3;
 
 exec("./events.cs");
 
@@ -16,15 +17,13 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 	isLooping = 1;
 	is3D = 1;
 
-	ReferenceDistance = 20;
-	maxDistance = 150;
+	ReferenceDistance = 20.248;
+	maxDistance = 150.248;
 
-	type = $SimAudioType;
+	type = $EngineAudioType;
 
-	//'fingerprint' for detection since who would ever use these values for an audiodescription?
-	coneInsideAngle = 133;
-	coneOutsideAngle = 337;
-
+	coneInsideAngle = 0;
+	coneOutsideAngle = 0;
 };
 
 function serverCmdES_newAudioHandle(%client, %audioHandle)
@@ -68,14 +67,22 @@ function GameConnection::ES_AppendReply(%client, %audioHandle, %vehicle)
 	}
 
 	%vehDB = %vehicle.getDataBlock();
+	//dont think i need to sent it anymore but just incase for later
 	%audioDescData = %vehDB.ES_SoundDB.getDescription();
-	commandToClient(%client, 'ES_closestVehicle', %audioHandle, %ghostID, %vehDB.ES_StartPitch, %vehDB.ES_VelocityScalar, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims, %audioDescData);
 
-	//talk("sent: " @ %client.getGhostID(%vehicle));
+	%scalars = %vehDB.ES_VelocityScalar SPC %vehDB.ES_VolumeScalar;
+	%startValues = %vehDB.ES_StartPitch SPC %vehDB.ES_StartVolume;
+	commandToClient(%client, 'ES_closestVehicle', %audioHandle, %ghostID, %startValues, %scalars, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims, %audioDescData);
 }
 
-function serverCMDES_handshake(%client)
+function serverCMDES_handshake(%client, %version)
 {
+	if(%version $= "")
+	{
+		%client.chatMessage("\c6This server is running \c3EngineSounds\c6 version \c3"@ $ES::Version @"\c6, your version of Support_EngineSounds will \c0not \c6work!");
+		return;
+	}
+
 	%client.hasEngineSounds = true;
 	if(!isObject(%client.ES_AudioSet))
 	{
