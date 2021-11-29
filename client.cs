@@ -280,6 +280,8 @@ function ES_Client_Loop(%lastLoopTime)
 	if($ES::DebugLevel >= 1 && isObject(%ctrl = %con.getControlObject()))
 		%myMount = %ctrl.getObjectMount();
 		
+			%myMount = %ctrl.getObjectMount();
+	
 	if(isObject(%ctrl = %con.getControlObject()))
 		alListener3f("AL_VELOCITY", vectorScale(%ctrl.getVelocity(), 1.0));
 
@@ -358,13 +360,42 @@ function ES_Client_Loop(%lastLoopTime)
 
 			if($ES::DebugLevel >= 1 && %vehicle == %myMount)
 			{
+				//round and trim the extra 0s (ex: 1.10 => 1.1)
+				%velocityLength = 0 + mFloatLength(%velocityLength, 2);
+				%fractOnGear 	= 0 + mFloatLength(%fractOnGear, 2);
+				%clampedPitch 	= 0 + mFloatLength(%clampedPitch, 2);
+
+					%volumeString = "supportsVolume: false";
 				if(%vehicle.ES_GearCount > 1)
 				{
-					//this debug line is very long
-					clientcmdbottomprint("<just:left>pitch: " @ %newPitch @ "<just:center>gear:" SPC %gear @"/"@ %vehicle.ES_gearCount SPC "<just:right>velocity: "@ %velocityLength NL "<just:left>progress into gear: "@ %fractOnGear @ "<just:right>gearPitches: "@ %vehicle.ES_GearPitchStart[%gear] @"->"@ %vehicle.ES_GearPitchPeak[%gear] NL "<just:center>gearSpeeds(L,C,N):"@ %vehicle.ES_GearSpeed[%gear-1] @","@ %vehicle.ES_GearSpeed[%gear] @","@ %vehicle.ES_GearSpeed[%gear+1], 1, 1);
-				} else
-					clientcmdbottomprint("<just:left>pitch: " @ %newPitch @ "<just:right>velocity: "@ %velocityLength NL "<just:left>startPitch: " @ %vehicle.ES_StartPitch @"<just:right>velocityscalar: "@ %vehicle.ES_VelocityScalar, 1, 1);
+					//this debug line is more readable now
+					%string = ES_filterString("<just:left>pitch: %1<tab:260,450>\tgear:%2/%3\tvelocity: %4" 	NL
+											 "<just:left>progress into gear: %5<just:right>gearPitches: %6->%7"  	NL
+											 "<just:center>gearSpeeds(L,C,N):%8,%9,%10" 							NL
+											 "%11",
+												%clampedPitch,
+												%gear,
+												%vehicle.ES_gearCount,
+												%velocityLength,
+												%fractOnGear,
+												%vehicle.ES_GearPitchStart[%gear],
+												%vehicle.ES_GearPitchPeak[%gear],
+												%vehicle.ES_GearSpeed[%gear-1], %vehicle.ES_GearSpeed[%gear], %vehicle.ES_GearSpeed[%gear+1],
+												%volumeString
+											);
+
+					clientcmdbottomprint(%string, 1, 1);
+				} else {
+					%string = ES_filterString("<just:left>pitch: %1<just:right>velocity: %2" NL
+											 "<just:left>startPitch: %3<just:right>velocityscalar: %4" NL
+											 "%5",
+											 	%clampedPitch, %velocityLength, %vehicle.ES_StartPitch, %vehicle.ES_VelocityScalar, %volumeString);
+					
+					clientcmdbottomprint(%string, 1, 1);
+				}
 			}
+
+			
 		}
 	}
 
