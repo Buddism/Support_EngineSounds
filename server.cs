@@ -3,7 +3,7 @@ function reloadES()
 	exec("./server.cs");
 }
 
-$ES::Version = "1.0.1";
+$ES::Version = "2.0.0";
 $EngineAudioType = 3;
 
 exec("./events.cs");
@@ -75,8 +75,14 @@ function GameConnection::ES_AppendReply(%client, %audioHandle, %vehicle)
 	commandToClient(%client, 'ES_closestVehicle', %audioHandle, %ghostID, %startValues, %scalars, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims, %audioDescData);
 }
 
-function serverCMDES_handshake(%client)
+function serverCMDES_handshake(%client, %version)
 {
+	if(%version $= "")
+	{
+		%client.chatMessage("\c6This server is running \c3EngineSounds\c6 version \c3"@ $ES::Version @"\c6, your version of Support_EngineSounds will \c0not \c6work!");
+		return;
+	}
+
 	%client.hasEngineSounds = true;
 	if(!isObject(%client.ES_AudioSet))
 	{

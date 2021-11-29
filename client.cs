@@ -5,7 +5,7 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
 	new simSet(ES_ActiveSet);
 
-$ES::Version = "1.0.1";
+$ES::Version = "2.0.0";
 
 if($ES::DebugLevel $= "") //is it undefined?
 	$ES::DebugLevel = 0;
@@ -33,9 +33,43 @@ function ES_filterString(%str, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9, %a10
 	return %str;
 }
 
+//stolen from TGE:
+
+//---------------------------------------------------------------------------
+// the following db<->linear conversion functions >come from Loki openAL linux driver<
+// code, here more for completeness than anything else (all current audio code
+// uses AL_GAIN_LINEAR)... in Audio:: so that looping updates and audio channel updates
+// can convert gain types and to give the miles driver access
+$ES::logTab[0] = 0.00; $ES::logTab[1] = 0.001; $ES::logTab[2] = 0.002; $ES::logTab[3] = 0.003; $ES::logTab[4] = 0.004; $ES::logTab[5] = 0.005; $ES::logTab[6] = 0.01; $ES::logTab[7] = 0.011;
+$ES::logTab[8] = 0.012; $ES::logTab[9] = 0.013; $ES::logTab[10] = 0.014; $ES::logTab[11] = 0.015; $ES::logTab[12] = 0.016; $ES::logTab[13] = 0.02; $ES::logTab[14] = 0.021; $ES::logTab[15] = 0.022;
+$ES::logTab[16] = 0.023; $ES::logTab[17] = 0.024; $ES::logTab[18] = 0.025; $ES::logTab[19] = 0.03; $ES::logTab[20] = 0.031; $ES::logTab[21] = 0.032; $ES::logTab[22] = 0.033; $ES::logTab[23] = 0.034;
+$ES::logTab[24] = 0.04; $ES::logTab[25] = 0.041; $ES::logTab[26] = 0.042; $ES::logTab[27] = 0.043; $ES::logTab[28] = 0.044; $ES::logTab[29] = 0.05; $ES::logTab[30] = 0.051; $ES::logTab[31] = 0.052;
+$ES::logTab[32] = 0.053; $ES::logTab[33] = 0.054; $ES::logTab[34] = 0.06; $ES::logTab[35] = 0.061; $ES::logTab[36] = 0.062; $ES::logTab[37] = 0.063; $ES::logTab[38] = 0.064; $ES::logTab[39] = 0.07;
+$ES::logTab[40] = 0.071; $ES::logTab[41] = 0.072; $ES::logTab[42] = 0.073; $ES::logTab[43] = 0.08; $ES::logTab[44] = 0.081; $ES::logTab[45] = 0.082; $ES::logTab[46] = 0.083; $ES::logTab[47] = 0.084;
+$ES::logTab[48] = 0.09; $ES::logTab[49] = 0.091; $ES::logTab[50] = 0.092; $ES::logTab[51] = 0.093; $ES::logTab[52] = 0.094; $ES::logTab[53] = 0.10; $ES::logTab[54] = 0.101; $ES::logTab[55] = 0.102;
+$ES::logTab[56] = 0.103; $ES::logTab[57] = 0.11; $ES::logTab[58] = 0.111; $ES::logTab[59] = 0.112; $ES::logTab[60] = 0.113; $ES::logTab[61] = 0.12; $ES::logTab[62] = 0.121; $ES::logTab[63] = 0.122;
+$ES::logTab[64] = 0.123; $ES::logTab[65] = 0.124; $ES::logTab[66] = 0.13; $ES::logTab[67] = 0.131; $ES::logTab[68] = 0.132; $ES::logTab[69] = 0.14; $ES::logTab[70] = 0.141; $ES::logTab[71] = 0.142;
+$ES::logTab[72] = 0.143; $ES::logTab[73] = 0.15; $ES::logTab[74] = 0.151; $ES::logTab[75] = 0.152; $ES::logTab[76] = 0.16; $ES::logTab[77] = 0.161; $ES::logTab[78] = 0.162; $ES::logTab[79] = 0.17;
+$ES::logTab[80] = 0.171; $ES::logTab[81] = 0.172; $ES::logTab[82] = 0.18; $ES::logTab[83] = 0.181; $ES::logTab[84] = 0.19; $ES::logTab[85] = 0.191; $ES::logTab[86] = 0.192; $ES::logTab[87] = 0.20;
+$ES::logTab[88] = 0.201; $ES::logTab[89] = 0.21; $ES::logTab[90] = 0.211; $ES::logTab[91] = 0.22; $ES::logTab[92] = 0.221; $ES::logTab[93] = 0.23; $ES::logTab[94] = 0.231; $ES::logTab[95] = 0.24;
+$ES::logTab[96] = 0.25; $ES::logTab[97] = 0.251; $ES::logTab[98] = 0.26; $ES::logTab[99] = 0.27; $ES::logTab[100] = 0.271; $ES::logTab[101] = 0.28; $ES::logTab[102] = 0.29; $ES::logTab[103] = 0.30;
+$ES::logTab[104] = 0.301; $ES::logTab[105] = 0.31; $ES::logTab[106] = 0.32; $ES::logTab[107] = 0.33; $ES::logTab[108] = 0.34; $ES::logTab[109] = 0.35; $ES::logTab[110] = 0.36; $ES::logTab[111] = 0.37;
+$ES::logTab[112] = 0.38; $ES::logTab[113] = 0.39; $ES::logTab[114] = 0.40; $ES::logTab[115] = 0.41; $ES::logTab[116] = 0.43; $ES::logTab[117] = 0.50; $ES::logTab[118] = 0.60; $ES::logTab[119] = 0.65;
+$ES::logTab[120] = 0.70; $ES::logTab[121] = 0.75; $ES::logTab[122] = 0.80; $ES::logTab[123] = 0.85; $ES::logTab[124] = 0.90; $ES::logTab[125] = 0.95; $ES::logTab[126] = 0.97; $ES::logTab[127] = 0.99;
+$ES::logCount = 127;
+
+
+//another TGE-ish function
+function ES_linearToDB(%value)
+{
+	//(logtab[(U32)(logmax * value)]);
+	return $ES::logTab[(mClampF(%value, 0, 1) * $ES::logCount) | 0];
+}
+
+
 function clientCmdES_Handshake(%serverVersion, %coneInsideAngle, %coneOutsideAngle)
 {
-	commandToServer('ES_Handshake');
+	commandToServer('ES_Handshake', $ES::Version);
 	if($Pref::ES::EnableHandshakeMessage)
 	{
 		if($ES::Version !$= %serverVersion)
@@ -297,7 +331,6 @@ function ES_Client_Loop(%lastLoopTime)
 		return;
 	}
 
-	%ctrl = %con.getControlObject();
 	if($ES::DebugLevel >= 1 && isObject(%ctrl = %con.getControlObject()))
 		%myMount = %ctrl.getObjectMount();
 	
@@ -376,18 +409,15 @@ function ES_Client_Loop(%lastLoopTime)
 
 			%clampedPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
 
-			if(!%vehicle.ES_SupportsVolume)
-				%clampedVolume = $f;
-			else
-				%clampedVolume = mClampF(%volume, 0, 1);
-			
-			//AL_GAIN_LINEAR is AL_GAIN but uses 0->1
-
 			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0)); //this requires a modified openAl32.dll for doppler effect support
 			alxSourcef(%handle, "AL_PITCH", %clampedPitch);
 
-			//alxSourcef(%handle, "AL_GAIN_LINEAR", %clampedVolume);
-			alxSourcef(%handle, "AL_CONE_OUTER_GAIN", %clampedVolume);
+			if(%vehicle.ES_SupportsVolume)
+			{
+				%clampedVolume = ES_linearToDB(%volume);
+				//	AL_GAIN & AL_GAIN_LINEAR have an odd problem so we need to use AL_CONE_OUTER_GAIN
+				alxSourcef(%handle, "AL_CONE_OUTER_GAIN", %clampedVolume);
+			}
 
 			if($ES::DebugLevel >= 1 && %vehicle == %myMount)
 			{
@@ -401,12 +431,11 @@ function ES_Client_Loop(%lastLoopTime)
 				if(%vehicle.ES_SupportsVolume)
 				{
 					%volumeString = ES_filterString("<just:left>volume: %1<tab:260,450>\tstartVolume: %2\tvolumeScalar: %3" NL
-													"RealGain_Linear: %5<tab:440>\toutergain: %4",
-														%clampedVolume SPC %volume,
+													"<just:center>DB_Volume: %4",
+														%volume,
 														%vehicle.ES_StartVolume,
 														%vehicle.ES_VolumeScalar,
-														alxGetSourcef(%handle, "AL_GAIN"),
-														alxGetSourcef(%handle, "AL_CONE_OUTER_GAIN")
+														%clampedVolume
 													);
 				} else {
 					%volumeString = "supportsVolume: false";

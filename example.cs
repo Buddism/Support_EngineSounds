@@ -139,6 +139,7 @@ JeepVehicle.ES_VolumeScalar = 0.2;
 //this is a linear line
 //	PROGRESS_TO_NEXT_GEAR is 1 at the peak of the gear, and 0 at the start
 //  VOLUME = START_VOLUME + PROGRESS_TO_NEXT_GEAR * VOLUME_SCALAR
+//	VOLUME is maxed at 1.0
 
 //less horrible values
 //JeepVehicle.ES_gearPitches = "0.7 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4";
