@@ -19,7 +19,7 @@ function fxDTSBrick::setEngineState(%this, %state)
 		case 0: // Start
 			%didAction = %vehicle.ES_EngineStart();
 
-		case 1 or 4: // [1]stop & [4]Always-Off
+		case 1: // Stop
 			%didAction = %vehicle.ES_EngineStop();
 
 		case 2: // On-Driver
@@ -28,9 +28,14 @@ function fxDTSBrick::setEngineState(%this, %state)
 
 		case 3: // Always-On
 			%didAction = %vehicle.ES_EngineStart();
-
-			%vehicle.ES_DisableEngine = false;
+		
+		case 4: //Always-Off
+			%didAction = %vehicle.ES_EngineStop();
 	}
+
 	if(%didAction)
 		%this.ES_lastEngineStateTime = getSimTime();
+		
+	if(%state >= 2)
+		%vehicle.ES_EngineState = %state;
 }

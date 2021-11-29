@@ -110,7 +110,7 @@ function Vehicle::ES_EngineStop(%this)
 }
 function Vehicle::ES_EngineStart(%this)
 {
-	if(%this.ES_Playing && isEventPending(%this.ES_EngineStartSchedule))
+	if(%this.ES_Playing || isEventPending(%this.ES_EngineStartSchedule))
 		return false;
 
 	cancel(%this.ES_EngineStartSchedule);
@@ -153,6 +153,7 @@ function Vehicle::ES_Init(%this)
 	%spawnBrick = %this.spawnBrick;
 	if(!isObject(%spawnBrick))
 		return;
+
 	%this.ES_EngineState = %spawnBrick.ES_EngineState;
 	if(%this.ES_EngineState == 3) //ALWAYS-ON
 	{
@@ -169,7 +170,7 @@ package ES_Server_Package
 	//this func is buggy or some addon breaks it
 	function Armor::onUnMount (%this, %obj, %vehicle, %node)
 	{
-		if(isObject(%vehicle) && %vehicle.getDataBlock().ES_Enabled && %this.ES_EngineState != 3) //ALWAYS-ON
+		if(isObject(%vehicle) && %vehicle.getDataBlock().ES_Enabled && %vehicle.ES_EngineState != 3) //State 3 is ALWAYS-ON
 			%vehicle.schedule(32, ES_CheckNoDriver); //delay this to avoid any issues
 
 		return parent::onUnMount (%this, %obj, %vehicle, %node);
