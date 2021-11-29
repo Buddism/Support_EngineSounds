@@ -5,7 +5,7 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
 	new simSet(ES_ActiveSet);
 
-$ES::Version = "1.0.0";
+$ES::Version = "1.0.1";
 
 if($ES::DebugLevel $= "") //is it undefined?
 	$ES::DebugLevel = 0;
@@ -114,13 +114,6 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %StartValu
 	%con.ES_allowCheck[%audioHandle] = false;
 	ES_Debug(12, "   set up audio handle for %1", %closestVehicleGID); //kinda useless message because of the one in ES_RegisterActiveVehicle
 
-	// if(%audioDescription.ES_AdjustedVolume == false)
-	// {
-	// 	%audioDescription.volume *= 3;
-	// 	%audioDescription.ES_AdjustedVolume = true;
-	// 	newChatHud_addLine(%audiodescription);
-	// }
-
 	ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
 }
 
@@ -171,6 +164,15 @@ function ES_Client_LookForVehicles()
 }
 
 
+function ES_checkFingerprintValue(%value)
+{
+	%fract = %value - (%value | 0);
+	
+	return mAbs(%fract - 0.248) < 0.001;
+}
+
+
+
 //monitor the logged vehicles from 'ES_Client_LookForVehicles' for exposed audioHandles
 function ES_Client_MonitorHandles()
 {
@@ -181,8 +183,6 @@ function ES_Client_MonitorHandles()
 		return;
 	}
 
-	%CIA = $ES::InsideAngle;  //Cone Inner Angle
-	%COA = $ES::OutsideAngle; //ConeOutterAngle
 	%set = nameTOID("ES_MonitorSet");
 	%c = %set.getCount();
 	for(%k = %c - 1; %k >= 0; %k--)
@@ -191,7 +191,9 @@ function ES_Client_MonitorHandles()
 		%handleIndex = %obj.ES_HandlePosition;
 		for(%i = %handleIndex - 16; %i <= %handleIndex + 16; %i++)
 		{
-			if(alxIsPlaying(%i) && alxGetSourceI(%i, "AL_LOOPING") && alxGetSourceI(%i, "AL_CONE_INNER_ANGLE") == %CIA && alxGetSourceI(%i, "AL_CONE_OUTER_ANGLE") == %COA && !%con.ES_AudioHandle[%i]) //'fingerprinting' of the audio handle
+			if(	alxIsPlaying(%i) && alxGetSourceI(%i, "AL_LOOPING") && !%con.ES_AudioHandle[%i] &&
+				ES_checkFingerprintValue(alxGetSourceF(%i, "AL_REFERENCE_DISTANCE")) &&
+				ES_checkFingerprintValue(alxGetSourceF(%i, "AL_MAX_DISTANCE")))
 			{
 				//things can go wrong with this handshake easily
 				//handshake with the server for more accuracy if it is the correct vehicle
@@ -375,34 +377,36 @@ function ES_Client_Loop(%lastLoopTime)
 			%clampedPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
 
 			if(!%vehicle.ES_SupportsVolume)
-				%clampedVolume = 1;
+				%clampedVolume = $f;
 			else
-				%clampedVolume = mClampF(%volume / 3, 0, 1);
-
+				%clampedVolume = mClampF(%volume, 0, 1);
+			
 			//AL_GAIN_LINEAR is AL_GAIN but uses 0->1
 
 			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0)); //this requires a modified openAl32.dll for doppler effect support
 			alxSourcef(%handle, "AL_PITCH", %clampedPitch);
 
-			alxSourcef(%handle, "AL_GAIN_LINEAR", %clampedVolume);
+			//alxSourcef(%handle, "AL_GAIN_LINEAR", %clampedVolume);
+			alxSourcef(%handle, "AL_CONE_OUTER_GAIN", %clampedVolume);
 
-			if($ES::DebugLevel >= 1)// && %vehicle == %myMount)
+			if($ES::DebugLevel >= 1 && %vehicle == %myMount)
 			{
 				//round and trim the extra 0s (ex: 1.10 => 1.1)
 				%velocityLength = 0 + mFloatLength(%velocityLength, 2);
 				%fractOnGear 	= 0 + mFloatLength(%fractOnGear, 2);
 				%clampedPitch 	= 0 + mFloatLength(%clampedPitch, 2);
+				%clampedVolume	= 0 + mFloatLength(%clampedVolume, 2);
 				%volume 		= 0 + mFloatLength(%volume, 2);
 
 				if(%vehicle.ES_SupportsVolume)
 				{
 					%volumeString = ES_filterString("<just:left>volume: %1<tab:260,450>\tstartVolume: %2\tvolumeScalar: %3" NL
-													"RealGain_Linear: %5<tab:440>\tRealGain: %4",
+													"RealGain_Linear: %5<tab:440>\toutergain: %4",
 														%clampedVolume SPC %volume,
 														%vehicle.ES_StartVolume,
 														%vehicle.ES_VolumeScalar,
 														alxGetSourcef(%handle, "AL_GAIN"),
-														alxGetSourcef(%handle, "AL_GAIN_LINEAR")
+														alxGetSourcef(%handle, "AL_CONE_OUTER_GAIN")
 													);
 				} else {
 					%volumeString = "supportsVolume: false";
@@ -410,10 +414,32 @@ function ES_Client_Loop(%lastLoopTime)
 					
 				if(%vehicle.ES_GearCount > 1)
 				{
-					//this debug line is very long
-					clientcmdbottomprint("<just:left>pitch: " @ %newPitch @ "<just:center>gear:" SPC %gear @"/"@ %vehicle.ES_gearCount SPC "<just:right>velocity: "@ %velocityLength NL "<just:left>progress into gear: "@ %fractOnGear @ "<just:right>gearPitches: "@ %vehicle.ES_GearPitchStart[%gear] @"->"@ %vehicle.ES_GearPitchPeak[%gear] NL "<just:center>gearSpeeds(L,C,N):"@ %vehicle.ES_GearSpeed[%gear-1] @","@ %vehicle.ES_GearSpeed[%gear] @","@ %vehicle.ES_GearSpeed[%gear+1], 1, 1);
-				} else
-					clientcmdbottomprint("<just:left>pitch: " @ %newPitch @ "<just:right>velocity: "@ %velocityLength NL "<just:left>startPitch: " @ %vehicle.ES_StartPitch @"<just:right>velocityscalar: "@ %vehicle.ES_VelocityScalar, 1, 1);
+					//this debug line is more readable now
+					%string = ES_filterString("<just:left>pitch: %1<tab:260,450>\tgear:%2/%3\tvelocity: %4" 	NL
+											 "<just:left>progress into gear: %5<just:right>gearPitches: %6->%7"  	NL
+											 "<just:left>gearSpeeds(L,C,N):%8,%9,%10<tab:400>\taudioHandleID: %11" 							NL
+											 "%12",
+												%clampedPitch,
+												%gear,
+												%vehicle.ES_gearCount,
+												%velocityLength,
+												%fractOnGear,
+												%vehicle.ES_GearPitchStart[%gear],
+												%vehicle.ES_GearPitchPeak[%gear],
+												%vehicle.ES_GearSpeed[%gear-1], %vehicle.ES_GearSpeed[%gear], %vehicle.ES_GearSpeed[%gear+1],
+												%handle,
+												%volumeString
+											);
+
+					clientcmdbottomprint(%string, 1, 1);
+				} else {
+					%string = ES_filterString("<just:left>pitch: %1<just:right>velocity: %2" NL
+											 "<just:left>startPitch: %3<just:right>velocityscalar: %4" NL
+											 "audioHandleID: %5",
+											 	%clampedPitch, %velocityLength, %vehicle.ES_StartPitch, %vehicle.ES_VelocityScalar, %handle);
+					
+					clientcmdbottomprint(%string, 1, 1);
+				}
 			}
 		}
 	}
