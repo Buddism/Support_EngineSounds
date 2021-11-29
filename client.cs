@@ -7,7 +7,9 @@ if(!isObject(ES_ActiveSet))
 
 $ES::Version = "1.0.0";
 
-$ES::DebugLevel = 0;
+if($ES::DebugLevel $= "")
+	$ES::DebugLevel = 0;
+
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
 //DEBUG LEVEL 2 is for data recieved when the vehicle is enabled
 //DEbuG LEVEL 3 has gear shift up/down message (including animation data)
@@ -279,8 +281,6 @@ function ES_Client_Loop(%lastLoopTime)
 
 	if($ES::DebugLevel >= 1 && isObject(%ctrl = %con.getControlObject()))
 		%myMount = %ctrl.getObjectMount();
-		
-			%myMount = %ctrl.getObjectMount();
 	
 	if(isObject(%ctrl = %con.getControlObject()))
 		alListener3f("AL_VELOCITY", vectorScale(%ctrl.getVelocity(), 1.0));
@@ -350,10 +350,10 @@ function ES_Client_Loop(%lastLoopTime)
 				%pitch = %vehicle.ES_StartPitch + %velocityLength / %vehicle.ES_VelocityScalar;
 			}
 
-			%newPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
+			%clampedPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
 
-			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0));
-			alxSourcef(%handle, "AL_PITCH", %newPitch);
+			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0)); //this requires a modified openAl32.dll for doppler effect support
+			alxSourcef(%handle, "AL_PITCH", %clampedPitch);
 
 			//alxSourcef(%handle, "AL_GAIN", 			1 / 3);
 			//alxSourcef(%handle, "AL_GAIN_LINEAR", 	1 / 3);
@@ -365,14 +365,13 @@ function ES_Client_Loop(%lastLoopTime)
 				%fractOnGear 	= 0 + mFloatLength(%fractOnGear, 2);
 				%clampedPitch 	= 0 + mFloatLength(%clampedPitch, 2);
 
-					%volumeString = "supportsVolume: false";
 				if(%vehicle.ES_GearCount > 1)
 				{
 					//this debug line is more readable now
 					%string = ES_filterString("<just:left>pitch: %1<tab:260,450>\tgear:%2/%3\tvelocity: %4" 	NL
 											 "<just:left>progress into gear: %5<just:right>gearPitches: %6->%7"  	NL
 											 "<just:center>gearSpeeds(L,C,N):%8,%9,%10" 							NL
-											 "%11",
+											 "audioHandleID: %11",
 												%clampedPitch,
 												%gear,
 												%vehicle.ES_gearCount,
@@ -381,15 +380,15 @@ function ES_Client_Loop(%lastLoopTime)
 												%vehicle.ES_GearPitchStart[%gear],
 												%vehicle.ES_GearPitchPeak[%gear],
 												%vehicle.ES_GearSpeed[%gear-1], %vehicle.ES_GearSpeed[%gear], %vehicle.ES_GearSpeed[%gear+1],
-												%volumeString
+												%handle
 											);
 
 					clientcmdbottomprint(%string, 1, 1);
 				} else {
 					%string = ES_filterString("<just:left>pitch: %1<just:right>velocity: %2" NL
 											 "<just:left>startPitch: %3<just:right>velocityscalar: %4" NL
-											 "%5",
-											 	%clampedPitch, %velocityLength, %vehicle.ES_StartPitch, %vehicle.ES_VelocityScalar, %volumeString);
+											 "audioHandleID: %5",
+											 	%clampedPitch, %velocityLength, %vehicle.ES_StartPitch, %vehicle.ES_VelocityScalar, %handle);
 					
 					clientcmdbottomprint(%string, 1, 1);
 				}
