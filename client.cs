@@ -7,6 +7,8 @@ if(!isObject(ES_ActiveSet))
 
 $ES::Version = "2.0.0";
 
+$EngineAudioType = 9;
+
 if($ES::DebugLevel $= "") //is it undefined?
 	$ES::DebugLevel = 0;
 

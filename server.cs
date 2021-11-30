@@ -4,7 +4,7 @@ function reloadES()
 }
 
 $ES::Version = "2.0.0";
-$EngineAudioType = 3;
+$EngineAudioType = 9;
 
 exec("./events.cs");
 
