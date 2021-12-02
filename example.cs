@@ -134,8 +134,8 @@ JeepVehicle.ES_StartVolume = 0.2;
 //VOLUME SCALAR
 JeepVehicle.ES_VolumeScalar = 0.2;
 
-//OR (still effected by ES_StartVolume) MAXES AT 1
-JeepVehicle.ES_GearVolumeLevels = "0.4 1 0.9 1 0.9 1 0.9 1 0.9 1 0.9 1 0.9 1";
+//OR (still effected by ES_StartVolume) (REAL VOLUME maxes at 1, these values do not: EX:{   0.5 1.5, would hit 1.0 volume half way into the gear (THE MAX)} )
+JeepVehicle.ES_GearVolumeLevels = "0.4 1 0.7 1 0.7 1 0.7 1 0.7 1 0.7 1 0.7 1";
 
 
 //volume algorithm
