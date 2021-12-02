@@ -313,7 +313,7 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %StartValues, %scalars
 		%gearCount = 0;
 		ES_Debug(1, "invalid gear data from server (mismatch) gearCount: %1, gearSpeedsCount: %2, gearPitchesCount: %3 (total: %4)", %gearCount, getWordCount(%gearSpeeds), getWordCount(%gearPitches) / 2, getWordCount(%gearPitches));
 	}
-
+	
 	if(%gearCount > 1)
 	{
 		%vehicle.ES_GearCount = %gearCount;
@@ -463,22 +463,22 @@ function ES_Client_Loop(%lastLoopTime)
 				%clampedPitch 	= 0 + mFloatLength(%clampedPitch, 2);
 				%clampedVolume	= 0 + mFloatLength(%clampedVolume, 2);
 				%volume 		= 0 + mFloatLength(%volume, 2);
-
-				if(%vehicle.ES_SupportsVolume)
-				{
-					%volumeString = ES_filterString("<just:left>volume: %1<tab:260,450>\tstartVolume: %2\tvolumeScalar: %3" NL
-													"<just:center>DB_Volume: %4",
-														%volume,
-														%vehicle.ES_StartVolume,
-														%vehicle.ES_VolumeScalar,
-														%clampedVolume
-													);
-				} else {
-					%volumeString = "supportsVolume: false";
-				}
 					
 				if(%vehicle.ES_GearCount > 1)
 				{
+					if(%vehicle.ES_SupportsVolume)
+					{
+						%volumeString = ES_filterString("<just:left>volume: %1<tab:400>\tgearVolumes: %2->%3" NL
+														"<just:center>DB_Volume: %4",
+															%volume,
+															%vehicle.ES_GearVolumeStart[%gear],
+															%vehicle.ES_GearVolumePeak[%gear],
+															%clampedVolume
+														);
+					} else {
+						%volumeString = "supportsVolume: false";
+					}
+					
 					//this debug line is more readable now
 					%string = ES_filterString("<just:left>pitch: %1<tab:260,450>\tgear:%2/%3\tvelocity: %4" 	NL
 											 "<just:left>progress into gear: %5<just:right>gearPitches: %6->%7"  	NL
@@ -498,6 +498,19 @@ function ES_Client_Loop(%lastLoopTime)
 
 					clientcmdbottomprint(%string, 1, 1);
 				} else {
+					if(%vehicle.ES_SupportsVolume)
+					{
+						%volumeString = ES_filterString("<just:left>volume: %1<tab:260,450>\tstartVolume: %2\tvolumeScalar: %3" NL
+														"<just:center>DB_Volume: %4",
+															%volume,
+															%vehicle.ES_StartVolume,
+															%vehicle.ES_VolumeScalar,
+															%clampedVolume
+														);
+					} else {
+						%volumeString = "supportsVolume: false";
+					}
+
 					%string = ES_filterString("<just:left>pitch: %1<just:right>velocity: %2" NL
 											 "<just:left>startPitch: %3<just:right>velocityscalar: %4" NL
 											 "audioHandleID: %5",

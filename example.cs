@@ -134,8 +134,8 @@ JeepVehicle.ES_StartVolume = 0.2;
 //VOLUME SCALAR
 JeepVehicle.ES_VolumeScalar = 0.2;
 
-//OR (still effected by ES_StartVolume)
-JeepVehicle.ES_GearVolumeLevels = "0.4 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4 0.9 1.4";
+//OR (still effected by ES_StartVolume) MAXES AT 1
+JeepVehicle.ES_GearVolumeLevels = "0.4 1 0.9 1 0.9 1 0.9 1 0.9 1 0.9 1 0.9 1";
 
 
 //volume algorithm
