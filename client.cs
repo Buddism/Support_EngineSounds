@@ -17,6 +17,10 @@ $EngineAudioType = 8;
 if($ES::DebugLevel $= "") //is it undefined?
 	$ES::DebugLevel = 0;
 
+if($Pref::ES::AllowVolumeAdjustment $= "")
+	$Pref::ES::AllowVolumeAdjustment = true;
+	
+
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
 //DEBUG LEVEL 2 is for data recieved when the vehicle is enabled
 //DEbuG LEVEL 3 has gear shift up/down message (including animation data)
@@ -45,7 +49,7 @@ function ES_filterString(%str, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9, %a10
 //or a clients object GhostIdx (%ghostID = %client.getGhostID(%vehicle))
 function clientCmdES_setVolume(%type, %volumeLevel)
 {
-	if($Pref::ES::DisableVolumeAdjustment)
+	if($Pref::ES::AllowVolumeAdjustment)
 		return 0;
 
 	%clampedVolumeLevel = mClampF(%volumeLevel, 0.0, 1.0);
