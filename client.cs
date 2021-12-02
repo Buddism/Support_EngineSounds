@@ -3,6 +3,9 @@ function reloadCES()
 	exec("./client.cs");
 }
 
+if(!isObject(OptAudioVolumeEngine))
+	exec("./gui.cs");
+
 if(!isObject(ES_MonitorSet))
 	new simSet(ES_MonitorSet);
 
