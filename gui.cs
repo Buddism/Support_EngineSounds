@@ -54,6 +54,16 @@ new GuiCheckBoxCtrl (GUI_EngineSounds_VolumeSetting)
 	buttonType = "ToggleButton";
 };
 
+package Support_EngineSounds_Gui
+{
+	function optionsDlg::onWake (%this)
+	{
+		OptAudioVolumeEngine.setValue($Pref::Audio::channelVolume[$EngineAudioType]);
+		return parent::onWake (%this);
+	}
+};
+activatePackage(Support_EngineSounds_Gui);
+
 %grabbedGui.add(OptAudioVolumeEngine);
 %grabbedGui.add(GUI_EngineSounds_VolumeSlider);
 %grabbedGui.add(GUI_EngineSounds_VolumeSetting);
