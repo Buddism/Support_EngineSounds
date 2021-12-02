@@ -1,10 +1,10 @@
-function reloadES()
+function reloadSES()
 {
 	exec("./server.cs");
 }
 
-$ES::Version = "2.0.0";
-$EngineAudioType = 9;
+$ES::Version = "2.0.1";
+$EngineAudioType = 8;
 
 exec("./events.cs");
 
@@ -17,11 +17,13 @@ datablock AudioDescription(AudioEngineLooping3d : AudioMusicLooping3d)
 	isLooping = 1;
 	is3D = 1;
 
+	//mod looks for the .248
 	ReferenceDistance = 20.248;
 	maxDistance = 150.248;
 
 	type = $EngineAudioType;
 
+	//these values are important
 	coneInsideAngle = 0;
 	coneOutsideAngle = 0;
 };
@@ -72,7 +74,21 @@ function GameConnection::ES_AppendReply(%client, %audioHandle, %vehicle)
 
 	%scalars = %vehDB.ES_VelocityScalar SPC %vehDB.ES_VolumeScalar;
 	%startValues = %vehDB.ES_StartPitch SPC %vehDB.ES_StartVolume;
-	commandToClient(%client, 'ES_closestVehicle', %audioHandle, %ghostID, %startValues, %scalars, %vehDB.ES_maxPitch, %vehDB.ES_GearPitchDelay, %vehDB.ES_gearCount, %vehDB.ES_gearSpeeds, %vehDB.ES_gearPitches, %vehDB.ES_gearShiftTime, %vehDB.ES_GearShiftAnims, %audioDescData);
+	commandToClient(%client, 'ES_closestVehicle', 
+													%audioHandle,
+													%ghostID,
+													%startValues,
+													%scalars,
+													%vehDB.ES_maxPitch,
+													%vehDB.ES_GearPitchDelay,
+													%vehDB.ES_gearCount,
+													%vehDB.ES_gearSpeeds,
+													%vehDB.ES_gearPitches,
+													%vehDB.ES_gearShiftTime,
+													%vehDB.ES_GearShiftAnims,
+													%audioDescData,
+													%vehDB.ES_GearVolumeLevels
+					);
 }
 
 function serverCMDES_handshake(%client, %version)

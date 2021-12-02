@@ -1,3 +1,8 @@
+function reloadCES()
+{
+	exec("./client.cs");
+}
+
 if(!isObject(ES_MonitorSet))
 	new simSet(ES_MonitorSet);
 
@@ -5,9 +10,9 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
 	new simSet(ES_ActiveSet);
 
-$ES::Version = "2.0.0";
+$ES::Version = "2.0.1";
 
-$EngineAudioType = 9;
+$EngineAudioType = 8;
 
 if($ES::DebugLevel $= "") //is it undefined?
 	$ES::DebugLevel = 0;
@@ -36,7 +41,6 @@ function ES_filterString(%str, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9, %a10
 }
 
 //stolen from TGE:
-
 //---------------------------------------------------------------------------
 // the following db<->linear conversion functions >come from Loki openAL linux driver<
 // code, here more for completeness than anything else (all current audio code
@@ -69,7 +73,33 @@ function ES_linearToDB(%value)
 }
 
 
-function clientCmdES_Handshake(%serverVersion, %coneInsideAngle, %coneOutsideAngle)
+//%type can be "Global"
+//or a clients object GhostIdx (%ghostID = %client.getGhostID(%vehicle))
+function clientCmdES_setVolume(%type, %volumeLevel)
+{
+	if($Pref::ES::DisableVolumeAdjustment)
+		return 0;
+
+	%clampedVolumeLevel = mClampF(%volumeLevel, 0.0, 1.0);
+	if(%type $= "Global")
+	{
+		serverConnection.ES_GlobalVolumeLevel = %clampedVolumeLevel;
+
+		return 1;
+	} else {
+		%vehicle = %con.resolveGhostID(%type | 0);
+		if(!isObject(%vehicle) || ! ( %vehicle.getType() & $TypeMasks::VehicleObjectType ) )
+			return 0;
+
+		if(ES_ActiveSet.isMember(%vehicle))
+			return 0;
+
+		%vehicle.ES_VolumeLevel = %clampedVolumeLevel;
+		return 1;
+	}
+}
+
+function clientCmdES_Handshake(%serverVersion)
 {
 	commandToServer('ES_Handshake', $ES::Version);
 	if($Pref::ES::EnableHandshakeMessage)
@@ -78,9 +108,9 @@ function clientCmdES_Handshake(%serverVersion, %coneInsideAngle, %coneOutsideAng
 			newChatHud_addLine("\c6This server is running \c3EngineSounds\c6 version \c3"@ %serverVersion @"\c6, you are using version\c3 "@ $ES::Version);
 		else newChatHud_addLine("\c6This server supports \c3EngineSounds");
 	}
-
-	$ES::InsideAngle = %coneInsideAngle;
-	$ES::OutsideAngle = %coneOutsideAngle;
+	
+	//initialize this value
+	serverConnection.ES_GlobalVolumeLevel = 1;
 
 	if(!isEventPending($ES_ScanVehicleSchedule))
 		ES_Client_LookForVehicles();
@@ -130,7 +160,7 @@ function clientCmdES_stopEngine(%vehicleGID)
 }
 
 //this is a lot of args
-function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims, %audioDescription)
+function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims, %audioDescription, %gearVolumeLevels)
 {
 	%con = nameToID(serverConnection);
 	ES_Debug(10, "RECIEVE" SPC %closestVehicleGID);
@@ -150,7 +180,7 @@ function clientCmdES_closestVehicle(%audioHandle, %closestVehicleGID, %StartValu
 	%con.ES_allowCheck[%audioHandle] = false;
 	ES_Debug(12, "   set up audio handle for %1", %closestVehicleGID); //kinda useless message because of the one in ES_RegisterActiveVehicle
 
-	ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims);
+	ES_RegisterActiveVehicle(%audioHandle, %closestVehicle, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims, %gearVolumeLevels);
 }
 
 function ES_MarkVehicle(%vehicle)
@@ -253,7 +283,7 @@ function ES_Client_MonitorHandles()
 	$ES_MonitorSchedule = schedule(1, 0, ES_Client_MonitorHandles);
 }
 
-function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims)
+function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %StartValues, %scalars, %maxPitch, %gearPitchDelay, %gearCount, %gearSpeeds, %gearPitches, %gearShiftTime, %gearShiftAnims, %gearVolumeLevels)
 {
 	%con = nameToID(serverConnection);
 	if(%con.ES_hasBoundHandle[%audioHandle])
@@ -263,6 +293,7 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %StartValues, %scalars
 		return;
 
 	%con.ES_hasBoundHandle[%audioHandle] = true;
+	%vehicle.ES_VolumeLevel = 1;
 
 	%vehicle.ES_AudioHandle = %audioHandle;
 
@@ -274,7 +305,7 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %StartValues, %scalars
 	%vehicle.ES_VelocityScalar = getWord(%scalars, 0);
 	%vehicle.ES_VolumeScalar   = getWord(%scalars, 1);
 
-	%vehicle.ES_SupportsVolume = %vehicle.ES_VolumeScalar + %vehicle.ES_StartVolume > 0;
+	%vehicle.ES_SupportsVolume = getWordCount(%gearVolumeLevels) + %vehicle.ES_VolumeScalar + %vehicle.ES_StartVolume > 0;
 
 	%gearCount = mClamp(%gearCount, 0, 24);
 	if(%gearCount != getWordCount(%gearSpeeds) || %gearCount != (getWordCount(%gearPitches) / 2))
@@ -293,6 +324,9 @@ function ES_RegisterActiveVehicle(%audioHandle, %vehicle, %StartValues, %scalars
 			%gearPitchIndex = %i * 2;
 			%vehicle.ES_GearPitchStart[%i] = getWord(%gearPitches, %gearPitchIndex + 0);
 			%vehicle.ES_GearPitchPeak [%i] = getWord(%gearPitches, %gearPitchIndex + 1);
+
+			%vehicle.ES_GearVolumeStart[%i] = mClampF(getWord(%gearVolumeLevels, %gearPitchIndex + 0), 0, 1);
+			%vehicle.ES_GearVolumePeak [%i] = mClampF(getWord(%gearVolumeLevels, %gearPitchIndex + 1), 0, 1);
 
 			%vehicle.ES_GearShiftAnim[%i] = getWord(%gearShiftAnims, getMin(%i, getWordCount(%gearShiftAnims) - 1));
 		}
@@ -384,7 +418,7 @@ function ES_Client_Loop(%lastLoopTime)
 					%gear = %vehicle.ES_lastGear;
 				}
 
-				if(%gear + 1 >= %vehicle.ES_GearCount) //its on its last gear
+				if(%gear + 1 >= %vehicle.ES_GearCount) //its on its last gear - not sure why i made it like this
 					%nextGearSpeed = %vehicle.getDataBlock().maxWheelSpeed;
 				else
 					%nextGearSpeed = %vehicle.ES_GearSpeed[getMin(%gear + 1, %vehicle.ES_GearCount - 1)];
@@ -392,10 +426,11 @@ function ES_Client_Loop(%lastLoopTime)
 				%currentGearSpeed = %vehicle.ES_GearSpeed[%gear];
 				%fractOnGear = (%velocityLength - %currentGearSpeed) / (%nextGearSpeed - %currentGearSpeed);
 
-				%gearPitch = ES_mLerp(%vehicle.ES_GearPitchStart[%gear], %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
+				%gearPitch  = ES_mLerp( %vehicle.ES_GearPitchStart[%gear],  %vehicle.ES_GearPitchPeak[%gear], %fractOnGear);
+				%gearVolume = ES_mLerp(%vehicle.ES_GearVolumeStart[%gear], %vehicle.ES_GearVolumePeak[%gear], %fractOnGear);
 
 				%pitch = %vehicle.ES_StartPitch + %gearPitch;
-				%volume = %vehicle.ES_startVolume + %fractOnGear / %vehicle.ES_VolumeScalar;
+				%volume = %vehicle.ES_startVolume + %gearVolume;
 				if($Sim::Time - %vehicle.ES_lastGearShiftTime < %vehicle.ES_GearPitchDelay)
 				{
 					%pitch = ES_mLerp(%vehicle.ES_lastPitch, %pitch, ($Sim::Time - %vehicle.ES_lastGearShiftTime) / %vehicle.ES_GearPitchDelay);
@@ -414,12 +449,11 @@ function ES_Client_Loop(%lastLoopTime)
 			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0)); //this requires a modified openAl32.dll for doppler effect support
 			alxSourcef(%handle, "AL_PITCH", %clampedPitch);
 
-			if(%vehicle.ES_SupportsVolume)
-			{
-				%clampedVolume = ES_linearToDB(%volume);
-				//	AL_GAIN & AL_GAIN_LINEAR have an odd problem so we need to use AL_CONE_OUTER_GAIN
-				alxSourcef(%handle, "AL_CONE_OUTER_GAIN", %clampedVolume);
-			}
+			
+			%clampedVolume = mClampF((%vehicle.ES_SupportsVolume ? ES_linearToDB(%volume) : 1.0), 0.0, 1.0);
+			
+			//	AL_GAIN & AL_GAIN_LINEAR have an odd problem so we need to use AL_CONE_OUTER_GAIN
+			alxSourcef(%handle, "AL_CONE_OUTER_GAIN", %clampedVolume * %vehicle.ES_VolumeLevel * %con.ES_GlobalVolumeLevel);
 
 			if($ES::DebugLevel >= 1 && %vehicle == %myMount)
 			{
