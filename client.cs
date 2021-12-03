@@ -478,12 +478,12 @@ function ES_Client_Loop(%lastLoopTime)
 											 "%12",
 												%clampedPitch,
 												%gear,
-												%vehicle.ES_gearCount,
+												%vehicle.ES_gearCount - 1,
 												%velocityLength,
 												%fractOnGear,
 												%vehicle.ES_GearPitchStart[%gear],
 												%vehicle.ES_GearPitchPeak[%gear],
-												%vehicle.ES_GearSpeed[%gear-1], %vehicle.ES_GearSpeed[%gear], %vehicle.ES_GearSpeed[%gear+1],
+												%vehicle.ES_GearSpeed[%gear-1], %vehicle.ES_GearSpeed[%gear], %nextGearSpeed,
 												%handle,
 												%volumeString
 											);
