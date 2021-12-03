@@ -361,7 +361,13 @@ function ES_Client_Loop(%lastLoopTime)
 
 		if(alxIsPlaying(%handle) && alxGetSourceI(%handleIndex, "AL_LOOPING")) // is the audio handle still playing?
 		{
+			//%vel = %vehicle.getVelocity();
+			//%fvec = %vehicle.getForwardVector();
+
+			//velocity relative to the facing vector
+			//%velocityLength = mAbs(getWord(%fvec, 0) * getWord(%vel, 0) + getWord(%fvec, 1) * getWord(%vel, 1) + getWord(%fvec, 2) * getWord(%vel, 2));
 			%velocityLength = vectorLen(%vehicle.getVelocity());
+
 			if(%vehicle.ES_GearCount > 1)
 			{
 				if($Sim::Time - %vehicle.ES_lastGearShiftTime > %vehicle.ES_gearShiftTime)
