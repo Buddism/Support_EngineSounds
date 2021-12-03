@@ -52,7 +52,7 @@ function ES_filterString(%str, %a1, %a2, %a3, %a4, %a5, %a6, %a7, %a8, %a9, %a10
 //or a clients object GhostIdx (%ghostID = %client.getGhostID(%vehicle))
 function clientCmdES_setVolume(%type, %volumeLevel)
 {
-	if($Pref::ES::AllowVolumeAdjustment)
+	if(!$Pref::ES::AllowVolumeAdjustment)
 		return 0;
 
 	%clampedVolumeLevel = mClampF(%volumeLevel, 0.0, 1.0);
@@ -468,7 +468,7 @@ function ES_Client_Loop(%lastLoopTime)
 															%finalVolume
 														);
 					} else {
-						%volumeString = "supportsVolume: false";
+						%volumeString = ES_filterString("supportsVolume: false<tab:400>\tFinal Volume: %1", %finalVolume);
 					}
 					
 					//this debug line is more readable now
