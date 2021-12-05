@@ -232,7 +232,7 @@ package ES_Server_Package
 	}
 	function Armor::onMount (%this, %obj, %vehicle, %node)
 	{
-		if(%vehicle.getDataBlock().ES_Enabled && %vehicle.ES_EngineState != 3 && %node == 0 && %vehicle.getControllingClient() == 0)
+		if(%vehicle.getDataBlock().ES_Enabled && %vehicle.ES_EngineState != 4 && %node == 0 && %vehicle.getControllingClient() == 0)
 			%vehicle.ES_EngineStart();
 
 		return parent::onMount(%this, %obj, %vehicle, %node);
