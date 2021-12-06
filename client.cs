@@ -3,8 +3,8 @@ function reloadCES()
 	exec("./client.cs");
 }
 
-if(!isObject(OptAudioVolumeEngine))
-	exec("./gui.cs");
+//if(!isObject(OptAudioVolumeEngine))
+	exec("./EngineSounds_Pane.gui");
 
 if(!isObject(ES_MonitorSet))
 	new simSet(ES_MonitorSet);
@@ -22,6 +22,9 @@ if($ES::DebugLevel $= "") //is it undefined?
 
 if($Pref::ES::AllowVolumeAdjustment $= "")
 	$Pref::ES::AllowVolumeAdjustment = true;
+
+if($Pref::ES::DopplerEffect $= "")
+	$Pref::ES::DopplerEffect = false;
 	
 
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
@@ -338,13 +341,16 @@ function ES_Client_Loop(%lastLoopTime)
 	%con = serverConnection;
 	if(!isObject(%con))
 	{
+		alListener3f("AL_VELOCITY", "0 0 0");
 		cancel($EngineSound_Schedule);
 		return;
 	}
 	
 	if(isObject(%ctrl = %con.getControlObject()))
 	{
-		alListener3f("AL_VELOCITY", vectorScale(%ctrl.getVelocity(), 1.0));
+		if($Pref::ES::DopplerEffect)
+			alListener3f("AL_VELOCITY", vectorScale(%ctrl.getVelocity(), 1.0));
+
 		%myMount = %ctrl.getObjectMount();
 	}
 
@@ -427,14 +433,19 @@ function ES_Client_Loop(%lastLoopTime)
 
 			%clampedPitch = mClampF(%pitch, 0.001, %vehicle.ES_maxPitch);
 
-			alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0)); //this requires a modified openAl32.dll for doppler effect support
+			if($Pref::ES::DopplerEffect)
+				alxSource3f(%handle, "AL_VELOCITY", vectorScale(%vehicle.getVelocity(), 1.0)); //this requires a modified openAl32.dll (or 1.0) for doppler effect support
+
 			alxSourcef(%handle, "AL_PITCH", %clampedPitch);
 
 			
 			%clampedVolume = mClampF((%vehicle.ES_SupportsVolume ? %volume : 1.0), 0.0, 1.0);
-			%finalVolume = mClampF(%clampedVolume * %vehicle.ES_VolumeLevel * %con.ES_GlobalVolumeLevel, 0.0, 1.0);
+			//for some reason i need to add alxGetChannelVolume() even though i thought it was handled by the engine
+			%finalVolume = mClampF(%clampedVolume * %vehicle.ES_VolumeLevel * %con.ES_GlobalVolumeLevel * alxGetChannelVolume($EngineAudioType), 0.0, 1.0);
 			
 			//	AL_GAIN & AL_GAIN_LINEAR have an odd problem so we need to use AL_CONE_OUTER_GAIN
+			if(%vehicle == %myMount && $firstPerson)
+				%finalVolume *= $Pref::ES::FirstPersonVolume;
 			
 			alxSourcef(%handle, "AL_CONE_OUTER_GAIN", %finalVolume);
 
@@ -442,7 +453,8 @@ function ES_Client_Loop(%lastLoopTime)
 				%vehicle.ES_originalReferenceDistance = alxGetSourceF(%handle, "AL_REFERENCE_DISTANCE");
 			
 			//weird crapola to REMOVE audio distance scaling
-			alxSourcef(%handle, "AL_REFERENCE_DISTANCE", ((%vehicle == %myMount) ? 0 : %vehicle.ES_originalReferenceDistance));
+			if(firstWord(alGetString("AL_VERSION")) $= "1.1") //== 1.1 is buggy (THIS is not needed in old openAL)
+				alxSourcef(%handle, "AL_REFERENCE_DISTANCE", ((%vehicle == %myMount) ? 0 : %vehicle.ES_originalReferenceDistance));
 
 
 			if($ES::DebugLevel >= 1 && (%vehicle == %myMount || %vehicle.debug))
@@ -472,9 +484,9 @@ function ES_Client_Loop(%lastLoopTime)
 					}
 					
 					//this debug line is more readable now
-					%string = ES_filterString("<just:left>pitch: %1<tab:260,450>\tgear:%2/%3\tvelocity: %4" 	NL
-											 "<just:left>progress into gear: %5<just:right>gearPitches: %6->%7"  	NL
-											 "<just:left>gearSpeeds(L,C,N):%8,%9,%10<tab:400>\taudioHandleID: %11" 							NL
+					%string = ES_filterString("<just:left>pitch: %1<tab:260,450>\tgear:%2/%3\tvelocity: %4"			NL
+											 "<just:left>progress into gear: %5<just:right>gearPitches: %6->%7"		NL
+											 "<just:left>gearSpeeds(L,C,N):%8,%9,%10<tab:400>\taudioHandleID: %11"	NL
 											 "%12",
 												%clampedPitch,
 												%gear,
@@ -504,8 +516,8 @@ function ES_Client_Loop(%lastLoopTime)
 						%volumeString = "supportsVolume: false";
 					}
 
-					%string = ES_filterString("<just:left>pitch: %1<just:right>velocity: %2" NL
-											 "<just:left>startPitch: %3<just:right>velocityscalar: %4" NL
+					%string = ES_filterString("<just:left>pitch: %1<just:right>velocity: %2"			NL
+											 "<just:left>startPitch: %3<just:right>velocityscalar: %4"	NL
 											 "audioHandleID: %5",
 											 	%clampedPitch, %velocityLength, %vehicle.ES_StartPitch, %vehicle.ES_VelocityScalar, %handle);
 					

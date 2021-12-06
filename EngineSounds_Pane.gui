@@ -1,0 +1,308 @@
+$EngineAudioType = 8;
+
+//butchered OptAudioPane
+new GuiControl(OptEngineSoundsPane)
+{
+	profile = "BlockDefaultProfile";
+	horizSizing = "right";
+	vertSizing = "bottom";
+	position = "4 55";
+	extent = "626 414";
+	minExtent = "8 8";
+	enabled = "1";
+	visible = "0";
+	clipToParent = "1";
+
+	new GuiSwatchCtrl() { //Audio Options (CHECK BOXES)
+		profile = "GuiDefaultProfile";
+		horizSizing = "right";
+		vertSizing = "bottom";
+		position = "430 7";
+		extent = "186 301";
+		minExtent = "8 2";
+		enabled = "1";
+		visible = "1";
+		clipToParent = "1";
+		color = "255 255 255 200";
+
+		new GuiSwatchCtrl() { //DARK DISPLAY BOX
+			profile = "GuiDefaultProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "2 2";
+			extent = "182 21";
+			minExtent = "8 2";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			color = "0 0 0 255";
+		};
+		new GuiTextCtrl() { //TEXT INSIDE DARK DISPLAY BOX
+			profile = "OptionsMenuTextProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "9 3";
+			extent = "70 18";
+			minExtent = "8 2";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			text = "Audio Options";
+			maxLength = "255";
+		};
+
+		new GuiCheckBoxCtrl (GUI_EngineSounds_VolumeSetting)
+		{
+			profile = "GuiCheckBoxProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "5 25";
+			extent = "250 30";
+			minExtent = "8 2";
+			enabled = 1;
+			visible = 1;
+			clipToParent = 1;
+			variable = "$Pref::ES::AllowVolumeAdjustment";
+			text = "Server can change engine volume";
+			groupNum = -1;
+			buttonType = "ToggleButton";
+		};
+		new GuiCheckBoxCtrl (GUI_EngineSounds_DopplerEffect)
+		{
+			profile = "GuiCheckBoxProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "5 45";
+			extent = "250 30";
+			minExtent = "8 2";
+			enabled = 1;
+			visible = 1;
+			clipToParent = 1;
+			variable = "$Pref::ES::DopplerEffect";
+			command = "ES_ToggleDopplerEffect();";
+			text = "Doppler Effect";
+			groupNum = -1;
+			buttonType = "ToggleButton";
+		};
+	};
+
+	new GuiSwatchCtrl() { //VOLUMES (SLIDER STUFF)
+		profile = "GuiDefaultProfile";
+		horizSizing = "right";
+		vertSizing = "bottom";
+		position = "6 7";
+		extent = "421 301";
+		minExtent = "8 2";
+		enabled = "1";
+		visible = "1";
+		clipToParent = "1";
+		color = "255 255 255 200";
+
+		new GuiSwatchCtrl() { //DARK DISPLAY BOX
+			profile = "GuiDefaultProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "2 2";
+			extent = "417 21";
+			minExtent = "8 2";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			color = "0 0 0 255";
+		};
+		new GuiTextCtrl() { //TEXT INSIDE DARK DISPLAY BOX
+			profile = "OptionsMenuTextProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "9 3";
+			extent = "47 18";
+			minExtent = "8 2";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			text = "Volume";
+			maxLength = "255";
+		};
+		
+		new GuiSliderCtrl(OptAudioVolumeEngine) { //VOLUME SLIDER GUI
+			profile = "BlockButtonProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "114 36";
+			extent = "305 34";
+			minExtent = "8 8";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			variable = "value";
+			altCommand = "OptAudioUpdateChannelVolume($EngineAudioType, OptAudioVolumeEngine.value);";
+			range = "0.000000 1.000000";
+			ticks = "10";
+			value = "0.8";
+			snap = "0";
+		};
+		new GuiTextCtrl(GUI_EngineSounds_VolumeSlider) { //VOLUME TEXT GUI
+			profile = "BlockButtonProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "7 36";
+			extent = "120 18";
+			minExtent = "8 8";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			text = "Engine Volume";
+			maxLength = "255";
+		};
+
+		new GuiSliderCtrl(OptAudioFirstPersonEngine) { //FIRST-PERSON VOLUME SLIDER GUI
+			profile = "BlockButtonProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "114 78";
+			extent = "305 34";
+			minExtent = "8 8";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			variable = "value";
+			altCommand = "ES_FirstPersonSetVolume(OptAudioFirstPersonEngine.value);";
+			range = "0.000000 1.000000";
+			ticks = "10";
+			value = "0.8";
+			snap = "0";
+		};
+		new GuiTextCtrl(GUI_EngineSounds_VolumeSlider) { //FIRST-PERSON VOLUME TEXT GUI
+			profile = "BlockButtonProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "1 78";
+			extent = "120 18";
+			minExtent = "8 8";
+			enabled = "1";
+			visible = "1";
+			clipToParent = "1";
+			text = "First Person Volume";
+			maxLength = "255";
+		};
+	};
+	new GuiSwatchCtrl() { //BOTTOM GUI THING
+		profile = "GuiDefaultProfile";
+		horizSizing = "right";
+		vertSizing = "bottom";
+		position = "6 311";
+		extent = "610 57";
+		minExtent = "8 2";
+		enabled = "1";
+		visible = "1";
+		clipToParent = "1";
+		color = "255 255 255 200";
+	};
+};
+
+OptAudioPane.getGroup().add(OptEngineSoundsPane);
+// this pane needs to be before the DONE button gui
+OptAudioPane.getGroup().bringToFront(OptEngineSoundsPane);
+
+new GuiBitmapButtonCtrl (ES_setPaneButton)
+{
+	profile = "BlockButtonProfile";
+	horizSizing = "right";
+	vertSizing = "bottom";
+	position = "12 29";
+	extent = "93 25";
+	minExtent = "8 2";
+	enabled = 1;
+	visible = 1;
+	clipToParent = 1;
+	command = "optionsDlg.setPane(EngineSounds);";
+	text = "Engine Sounds";
+	groupNum = -1;
+	buttonType = "PushButton";
+	bitmap = "base/client/ui/button1";
+	lockAspectRatio = 0;
+	alignLeft = 0;
+	alignTop = 0;
+	overflowImage = 0;
+	mKeepCached = 0;
+	mColor = "255 255 255 255";
+};
+
+for(%audioPaneCount = 0; %audioPaneCount < OptAudioPane.getCount(); %audioPaneCount++)
+{
+	%gui = OptAudioPane.getObject(%audioPaneCount);
+	if(%gui.extent $= "610 57") //the bottom white space
+		%ES_grabbedGui = %gui;
+}
+
+%ES_grabbedGui.add(ES_setPaneButton);
+
+function ES_FirstPersonSetVolume(%volume)
+{
+	$Pref::ES::FirstPersonVolume = %volume;
+	if (!alxIsPlaying ($AudioTestHandle))
+	{
+		$AudioTestHandle = alxCreateSource ("AudioChannel0", ExpandFilename ("base/data/sound/lightOn.wav"));
+		if ($AudioTestHandle)
+		{
+			alxPlay ($AudioTestHandle);
+			alxSourcef($AudioTestHandle, "AL_GAIN_LINEAR", %volume);
+		}
+	}
+}
+
+function ES_ToggleDopplerEffect()
+{
+	if($Pref::ES::DopplerEffect) //we only want to care if its turned off
+	{
+		if(firstWord(alGetString("AL_VERSION") $= "1.1"))
+			%info = "It is unlikely for this to work with a newer version of OpenAL (1.0+)<br>";
+
+		%info = %info @ "Only Engine Sounds will be handled correctly";
+		%info = %info @ "<br><br>The Listener and Vehicles are the only audio sources to get velocity updates";
+		%info = %info @ "<br>This warps ALL audio when moving";
+		messageBoxOK("Doppler Effect Information", %info, "");
+		return;
+	}
+
+	//Doppler effect is disabled,
+	//we need to reset all AL_VELOCITY modifications to 0, 0, 0
+	alListener3f("AL_VELOCITY", "0 0 0");
+
+	%set = nameToID("ES_ActiveSet");
+	%con = serverConnection;
+	if(!isObject(%set) || !isObject(%con))
+		return;
+
+	for(%i = %set.getCount() - 1; %I >= 0; %I--)
+	{
+		%vehicle = %set.getObject(%i);
+		%handle = %vehicle.ES_AudioHandle;
+		if( ! (%vehicle.getType() & $TypeMasks::VehicleObjectType) ) //wonderful type check
+		{
+			%set.remove(%vehicle);
+			continue;
+		}
+
+		if(alxIsPlaying(%handle) && alxGetSourceI(%handleIndex, "AL_LOOPING")) // is the audio handle still playing?
+			alxSource3f(%handle, "AL_VELOCITY", "0 0 0");
+	}
+}
+
+
+package Support_EngineSounds_Gui
+{
+	function optionsDlg::onWake (%this)
+	{
+		OptAudioVolumeEngine.setValue($Pref::Audio::channelVolume[$EngineAudioType]);
+		OptAudioFirstPersonEngine.setValue($Pref::ES::FirstPersonVolume);
+		return parent::onWake (%this);
+	}
+
+	function optionsDlg::setPane (%this, %pane)
+	{
+		OptEngineSoundsPane.setVisible (0);
+		return parent::setPane(%this, %pane);
+	}
+};
+activatePackage(Support_EngineSounds_Gui);
