@@ -255,7 +255,7 @@ function ES_ToggleDopplerEffect()
 {
 	if($Pref::ES::DopplerEffect) //we only want to care if its turned off
 	{
-		if(firstWord(alGetString("AL_VERSION") $= "1.1"))
+		if(firstWord(alGetString("AL_VERSION")) $= "1.1")
 			%info = "It is unlikely for this to work with a newer version of OpenAL (1.0+)<br>";
 
 		%info = %info @ "Only Engine Sounds will be handled correctly";
