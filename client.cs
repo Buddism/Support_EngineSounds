@@ -3,7 +3,7 @@ function reloadCES()
 	exec("./client.cs");
 }
 
-//if(!isObject(OptAudioVolumeEngine))
+if(!isObject(OptEngineSoundsPane))
 	exec("./EngineSounds_Pane.gui");
 
 if(!isObject(ES_MonitorSet))
