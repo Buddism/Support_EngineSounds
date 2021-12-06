@@ -3,7 +3,7 @@ function reloadSES()
 	exec("./server.cs");
 }
 
-$ES::Version = "2.0.1";
+$ES::Version = "2.1.0";
 $EngineAudioType = 8;
 
 exec("./events.cs");
@@ -93,7 +93,7 @@ function GameConnection::ES_AppendReply(%client, %audioHandle, %vehicle)
 
 function serverCMDES_handshake(%client, %version)
 {
-	if(%version $= "")
+	if(%version $= "") //this is pre 2.0.1, didnt communicate versions
 	{
 		%client.chatMessage("\c6This server is running \c3EngineSounds\c6 version \c3"@ $ES::Version @"\c6, your version of Support_EngineSounds will \c0not \c6work!");
 		return;
