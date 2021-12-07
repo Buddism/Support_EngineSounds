@@ -13,7 +13,7 @@ if(!isObject(ES_MonitorSet))
 if(!isObject(ES_ActiveSet))
 	new simSet(ES_ActiveSet);
 
-$ES::Version = "2.1.1";
+$ES::Version = "2.1.2";
 
 $EngineAudioType = 8;
 
