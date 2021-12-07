@@ -26,7 +26,7 @@ if($Pref::ES::AllowVolumeAdjustment $= "")
 if($Pref::ES::DopplerEffect $= "")
 	$Pref::ES::DopplerEffect = false;
 	
-if($$Pref::ES::FirstPersonVolume $= "")
+if($Pref::ES::FirstPersonVolume $= "")
 	$Pref::ES::FirstPersonVolume = 1.0;
 
 //DEBUG LEVEL 1 is for bottomprint data in your current vehicle & gear error checking
