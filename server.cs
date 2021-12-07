@@ -3,7 +3,7 @@ function reloadSES()
 	exec("./server.cs");
 }
 
-$ES::Version = "2.1.2";
+$ES::Version = "2.1.3";
 $EngineAudioType = 8;
 
 exec("./events.cs");
