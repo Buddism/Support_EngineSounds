@@ -21,7 +21,7 @@ JeepVehicle.ES_StartPitch = 1;
 //vehicle velocity scalar (useless in gear mode)
 JeepVehicle.ES_VelocityScalar = 50; // TU
 
-// engine sound pitch = startpitch + ( vectorlen ( vehicle.velocity ) * velocityScalar )
+// engine sound pitch = startpitch + ( vectorLen ( vehicle.velocity ) * velocityScalar )
 
 
 //gear count, will not work if you do not get the count right for ES_gearSpeeds and ES_gearPitches

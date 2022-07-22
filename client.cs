@@ -182,7 +182,7 @@ function ES_MarkVehicle(%vehicle)
 		ES_Client_MonitorHandles();
 }
 
-//this function scans the top of the serverconnection objects for new vehicles to be marked for when they expose the audioHandlerID to TS
+//this function scans the top of the serverConnection objects for new vehicles to be marked for when they expose the audioHandlerID to TS
 function ES_Client_LookForVehicles()
 {
 	cancel($ES_ScanVehicleSchedule);
@@ -462,12 +462,12 @@ function ES_Client_Loop(%lastLoopTime)
 			if($ES::DebugLevel >= 1 && (%vehicle == %myMount || %vehicle.debug))
 			{
 				//round and trim the extra 0s (ex: 1.10 => 1.1)
-				%velocityLength = 0 + mFloatLength(%velocityLength, 2);
-				%fractOnGear 	= 0 + mFloatLength(%fractOnGear, 2);
-				%clampedPitch 	= 0 + mFloatLength(%clampedPitch, 2);
-				%clampedVolume	= 0 + mFloatLength(%clampedVolume, 2);
-				%finalVolume	= 0 + mFloatLength(%finalVolume, 2);
-				%volume 		= 0 + mFloatLength(%volume, 2);
+				%velocityLength = mFloatLength(%velocityLength, 2);
+				%fractOnGear 	= mFloatLength(%fractOnGear, 2);
+				%clampedPitch 	= mFloatLength(%clampedPitch, 2);
+				%clampedVolume	= mFloatLength(%clampedVolume, 2);
+				%finalVolume	= mFloatLength(%finalVolume, 2);
+				%volume 		= mFloatLength(%volume, 2);
 					
 				if(%vehicle.ES_GearCount > 1)
 				{
